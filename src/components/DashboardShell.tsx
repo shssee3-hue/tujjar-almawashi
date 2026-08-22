@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AdminGuard from "@/components/AdminGuard";
+import BackButton from "@/components/BackButton";
 import { useAuth } from "@/contexts/AuthContext";
 
 const NAV = [
@@ -41,7 +42,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             ))}
           </nav>
         </aside>
-        <div>{children}</div>
+        <div>
+          <BackButton fallbackHref="/dashboard" />
+          {children}
+        </div>
       </div>
     </AdminGuard>
   );

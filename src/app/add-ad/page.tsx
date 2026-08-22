@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { createAd, getAd, updateAd } from "@/lib/ads";
 import ImageUploader from "@/components/ImageUploader";
+import BackButton from "@/components/BackButton";
 import {
   ANIMAL_TYPES,
   DEFAULT_BREEDS,
@@ -136,6 +137,7 @@ function AddAdForm() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      <BackButton />
       <h1 className="mb-6 text-2xl font-extrabold text-brand-bg-dark">
         {editId ? "تعديل الإعلان" : "إضافة إعلان جديد"}
       </h1>

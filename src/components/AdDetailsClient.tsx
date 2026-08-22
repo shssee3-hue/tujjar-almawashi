@@ -7,6 +7,7 @@ import { Ad } from "@/lib/types";
 import ImageGallery from "@/components/ImageGallery";
 import ReportButton from "@/components/ReportButton";
 import AdCard from "@/components/AdCard";
+import BackButton from "@/components/BackButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -43,11 +44,14 @@ export default function AdDetailsClient() {
 
   if (ad === null || ad.status === "deleted") {
     return (
-      <div className="py-24 text-center">
-        <p className="mb-4 text-black/50">هذا الإعلان غير موجود أو تم حذفه</p>
-        <Link href="/ads" className="font-bold text-brand-primary">
-          العودة لجميع الإعلانات
-        </Link>
+      <div className="mx-auto max-w-6xl px-4 py-10">
+        <BackButton fallbackHref="/ads" />
+        <div className="py-16 text-center">
+          <p className="mb-4 text-black/50">هذا الإعلان غير موجود أو تم حذفه</p>
+          <Link href="/ads" className="font-bold text-brand-primary">
+            العودة لجميع الإعلانات
+          </Link>
+        </div>
       </div>
     );
   }
@@ -64,6 +68,7 @@ export default function AdDetailsClient() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
+      <BackButton fallbackHref="/ads" />
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.4fr_1fr]">
         <div>
           <ImageGallery images={ad.images} alt={ad.title} />

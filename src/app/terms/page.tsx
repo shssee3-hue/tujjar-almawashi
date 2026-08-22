@@ -1,3 +1,5 @@
+import BackButton from "@/components/BackButton";
+
 export const metadata = {
   title: "الشروط والأحكام | تجّار المواشي",
 };
@@ -86,6 +88,7 @@ const SECTIONS = [
 export default function TermsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-14">
+      <BackButton />
       <h1 className="mb-2 text-3xl font-extrabold text-brand-primary">
         📄 الشروط والأحكام — موقع تجّار المواشي
       </h1>

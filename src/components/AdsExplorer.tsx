@@ -6,6 +6,7 @@ import { listAds, AdFilters } from "@/lib/ads";
 import { Ad } from "@/lib/types";
 import AdCard from "@/components/AdCard";
 import Pagination from "@/components/Pagination";
+import BackButton from "@/components/BackButton";
 import {
   ANIMAL_TYPES,
   DEFAULT_BREEDS,
@@ -96,6 +97,7 @@ export default function AdsExplorer({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
+      <BackButton />
       <h1 className="mb-6 text-2xl font-extrabold text-brand-bg-dark">{title}</h1>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">

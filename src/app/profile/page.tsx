@@ -9,6 +9,7 @@ import { listAdsBySeller, deleteAd } from "@/lib/ads";
 import { updateUserProfile } from "@/lib/users";
 import { Ad } from "@/lib/types";
 import AdCard from "@/components/AdCard";
+import BackButton from "@/components/BackButton";
 
 type TabKey = "active" | "featured" | "ended" | "flagged";
 
@@ -73,6 +74,7 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
+      <BackButton />
       <div className="mb-8 rounded-2xl border border-black/5 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">

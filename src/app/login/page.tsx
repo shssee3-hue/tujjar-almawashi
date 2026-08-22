@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { loginUser, authErrorMessage } from "@/lib/auth";
+import BackButton from "@/components/BackButton";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,6 +29,7 @@ export default function LoginPage() {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-12">
+      <BackButton />
       <div className="rounded-2xl border border-black/5 bg-white p-8 shadow-sm">
         <h1 className="mb-6 text-center text-2xl font-extrabold text-brand-primary">
           تسجيل الدخول
