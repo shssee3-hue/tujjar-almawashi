@@ -2,19 +2,20 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ANIMAL_TYPES } from "@/lib/constants";
 import { listFeaturedAds } from "@/lib/ads";
 import { Ad } from "@/lib/types";
 import AdCard from "@/components/AdCard";
 
-const CATEGORY_ICONS: Record<string, string> = {
-  "أغنام": "🐑",
-  "ماعز": "🐐",
-  "إبل": "🐪",
-  "أبقار": "🐄",
-  "خيول": "🐎",
-  "دواجن": "🐔",
+const CATEGORY_PHOTOS: Record<string, string> = {
+  "أغنام": "/images/animals/sheep.webp",
+  "ماعز": "/images/animals/goat.webp",
+  "إبل": "/images/animals/camel.webp",
+  "أبقار": "/images/animals/cow.webp",
+  "خيول": "/images/animals/horse.webp",
+  "دواجن": "/images/animals/chicken.webp",
 };
 
 export default function HomePage() {
@@ -38,16 +39,25 @@ export default function HomePage() {
   return (
     <div>
       <section className="relative overflow-hidden bg-brand-primary text-white">
+        <Image
+          src="/images/hero/hero-desert-camel.webp"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover opacity-[0.85]"
+        />
         <div
-          className="absolute inset-0 opacity-20"
+          className="absolute inset-0"
           style={{
-            backgroundImage:
-              "radial-gradient(circle at 20% 20%, #C9A66B 0%, transparent 40%), radial-gradient(circle at 80% 60%, #C9A66B 0%, transparent 35%)",
+            background:
+              "linear-gradient(180deg, rgba(26,20,15,0.35) 0%, rgba(90,70,50,0.55) 55%, rgba(90,70,50,0.92) 100%)",
           }}
         />
-        <div className="relative mx-auto max-w-5xl px-4 py-20 text-center">
-          <div className="mb-4 text-6xl">🐪🐑🐐</div>
-          <h1 className="text-3xl font-extrabold sm:text-5xl">تجّار المواشي</h1>
+        <div className="relative mx-auto max-w-5xl px-4 py-24 text-center">
+          <h1 className="text-3xl font-extrabold [text-shadow:0_2px_10px_rgba(0,0,0,0.45)] sm:text-5xl">
+            تجّار المواشي
+          </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-white/80">
             منصتك الأولى لبيع وشراء المواشي في السعودية ودول الخليج — تصفح آلاف
             الإعلانات أو أضف إعلانك الآن.
@@ -97,10 +107,25 @@ export default function HomePage() {
             <Link
               key={type}
               href={`/ads?animalType=${encodeURIComponent(type)}`}
-              className="flex flex-col items-center gap-2 rounded-2xl border border-black/5 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              className="group relative aspect-square overflow-hidden rounded-2xl border border-black/5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
             >
-              <span className="text-4xl">{CATEGORY_ICONS[type]}</span>
-              <span className="font-bold text-brand-bg-dark">{type}</span>
+              <Image
+                src={CATEGORY_PHOTOS[type]}
+                alt={type}
+                fill
+                sizes="(max-width: 640px) 50vw, 16vw"
+                className="object-cover opacity-[0.85] transition duration-300 group-hover:scale-105"
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(180deg, transparent 40%, rgba(26,20,15,0.75) 100%)",
+                }}
+              />
+              <span className="absolute inset-x-0 bottom-0 p-3 text-center font-bold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.5)]">
+                {type}
+              </span>
             </Link>
           ))}
         </div>
