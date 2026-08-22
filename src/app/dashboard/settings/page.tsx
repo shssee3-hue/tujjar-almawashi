@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { getSiteSettings, saveSiteSettings } from "@/lib/settings";
 import { SiteSettings } from "@/lib/types";
+import OwnerGuard from "@/components/OwnerGuard";
 
-export default function AdminSettingsPage() {
+function SettingsContent() {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -84,5 +85,13 @@ export default function AdminSettingsPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function AdminSettingsPage() {
+  return (
+    <OwnerGuard>
+      <SettingsContent />
+    </OwnerGuard>
   );
 }

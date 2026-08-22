@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { listAllUsersAdmin, setUserBanned } from "@/lib/users";
 import { UserProfile } from "@/lib/types";
+import OwnerGuard from "@/components/OwnerGuard";
 
 const ROLE_LABEL: Record<string, string> = {
   owner: "مالك النظام",
@@ -11,7 +12,7 @@ const ROLE_LABEL: Record<string, string> = {
   user: "مستخدم",
 };
 
-export default function AdminUsersPage() {
+function UsersContent() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -111,5 +112,13 @@ export default function AdminUsersPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminUsersPage() {
+  return (
+    <OwnerGuard>
+      <UsersContent />
+    </OwnerGuard>
   );
 }

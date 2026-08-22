@@ -8,12 +8,12 @@ import { useAuth } from "@/contexts/AuthContext";
 const NAV = [
   { href: "/dashboard", label: "نظرة عامة", icon: "📊" },
   { href: "/dashboard/ads", label: "إدارة الإعلانات", icon: "🐐" },
-  { href: "/dashboard/users", label: "إدارة المستخدمين", icon: "👥" },
+  { href: "/dashboard/users", label: "إدارة المستخدمين", icon: "👥", ownerOnly: true },
   { href: "/dashboard/reports", label: "إدارة البلاغات", icon: "🚩" },
   { href: "/dashboard/breeds", label: "إدارة السلالات", icon: "🧬" },
   { href: "/dashboard/regions", label: "المناطق والمدن", icon: "🗺️" },
   { href: "/dashboard/admins", label: "المشرفون", icon: "🛡️", ownerOnly: true },
-  { href: "/dashboard/settings", label: "إعدادات الموقع", icon: "⚙️" },
+  { href: "/dashboard/settings", label: "إعدادات الموقع", icon: "⚙️", ownerOnly: true },
 ];
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {

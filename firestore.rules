@@ -13,9 +13,10 @@ service cloud.firestore {
         : "guest";
     }
 
-    // "owner" is the single system owner and counts as an admin everywhere;
-    // only the owner may promote/demote other admins (see users/{userId}
-    // update rule below).
+    // "owner" is the single system owner and counts as an admin everywhere.
+    // Only the owner may: promote/demote admins, manage user accounts
+    // (ban/unban, role), or change site settings — regular admins keep
+    // ads/reports/breeds/regions moderation only.
     function isAdmin() {
       return myRole() == "admin" || myRole() == "owner";
     }
@@ -34,7 +35,6 @@ service cloud.firestore {
       allow create: if isOwner(userId)
         && request.resource.data.role == "user";
       allow update: if isSystemOwner()
-        || (isAdmin() && request.resource.data.role == resource.data.role)
         || (isOwner(userId)
             // owners can edit their own profile but never escalate role/ban/rating/reportsCount
             && request.resource.data.role == resource.data.role
@@ -82,7 +82,7 @@ service cloud.firestore {
     // settings/site — single site-wide settings document
     match /settings/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isSystemOwner();
     }
   }
 }
