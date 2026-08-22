@@ -1,0 +1,46 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import AdminGuard from "@/components/AdminGuard";
+
+const NAV = [
+  { href: "/dashboard", label: "نظرة عامة", icon: "📊" },
+  { href: "/dashboard/ads", label: "إدارة الإعلانات", icon: "🐐" },
+  { href: "/dashboard/users", label: "إدارة المستخدمين", icon: "👥" },
+  { href: "/dashboard/reports", label: "إدارة البلاغات", icon: "🚩" },
+  { href: "/dashboard/breeds", label: "إدارة السلالات", icon: "🧬" },
+  { href: "/dashboard/regions", label: "المناطق والمدن", icon: "🗺️" },
+  { href: "/dashboard/admins", label: "المشرفون", icon: "🛡️" },
+  { href: "/dashboard/settings", label: "إعدادات الموقع", icon: "⚙️" },
+];
+
+export default function DashboardShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  return (
+    <AdminGuard>
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-8 md:grid-cols-[240px_1fr]">
+        <aside className="h-fit rounded-2xl border border-black/5 bg-white p-3 shadow-sm">
+          <nav className="flex flex-col gap-1">
+            {NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                  pathname === item.href
+                    ? "bg-brand-primary text-white"
+                    : "text-black/60 hover:bg-black/5"
+                }`}
+              >
+                <span>{item.icon}</span>
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </nav>
+        </aside>
+        <div>{children}</div>
+      </div>
+    </AdminGuard>
+  );
+}
