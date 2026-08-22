@@ -21,6 +21,7 @@ interface AuthContextValue {
   profile: UserProfile | null;
   loading: boolean;
   isAdmin: boolean;
+  isSystemOwner: boolean;
   signOut: () => Promise<void>;
 }
 
@@ -29,6 +30,7 @@ const AuthContext = createContext<AuthContextValue>({
   profile: null,
   loading: true,
   isAdmin: false,
+  isSystemOwner: false,
   signOut: async () => {},
 });
 
@@ -72,7 +74,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         firebaseUser,
         profile,
         loading,
-        isAdmin: profile?.role === "admin",
+        isAdmin: profile?.role === "admin" || profile?.role === "owner",
+        isSystemOwner: profile?.role === "owner",
         signOut,
       }}
     >

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AdminGuard from "@/components/AdminGuard";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NAV = [
   { href: "/dashboard", label: "نظرة عامة", icon: "📊" },
@@ -11,19 +12,20 @@ const NAV = [
   { href: "/dashboard/reports", label: "إدارة البلاغات", icon: "🚩" },
   { href: "/dashboard/breeds", label: "إدارة السلالات", icon: "🧬" },
   { href: "/dashboard/regions", label: "المناطق والمدن", icon: "🗺️" },
-  { href: "/dashboard/admins", label: "المشرفون", icon: "🛡️" },
+  { href: "/dashboard/admins", label: "المشرفون", icon: "🛡️", ownerOnly: true },
   { href: "/dashboard/settings", label: "إعدادات الموقع", icon: "⚙️" },
 ];
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { isSystemOwner } = useAuth();
 
   return (
     <AdminGuard>
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-8 md:grid-cols-[240px_1fr]">
         <aside className="h-fit rounded-2xl border border-black/5 bg-white p-3 shadow-sm">
           <nav className="flex flex-col gap-1">
-            {NAV.map((item) => (
+            {NAV.filter((item) => !item.ownerOnly || isSystemOwner).map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

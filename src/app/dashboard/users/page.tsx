@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { listAllUsersAdmin, setUserBanned, setUserRole } from "@/lib/users";
+import { listAllUsersAdmin, setUserBanned } from "@/lib/users";
 import { UserProfile } from "@/lib/types";
-import { useAuth } from "@/contexts/AuthContext";
+
+const ROLE_LABEL: Record<string, string> = {
+  owner: "مالك النظام",
+  admin: "مشرف",
+  user: "مستخدم",
+};
 
 export default function AdminUsersPage() {
-  const { firebaseUser } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -26,17 +30,6 @@ export default function AdminUsersPage() {
     await setUserBanned(u.id, !u.banned);
     setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, banned: !x.banned } : x)));
     toast.success(u.banned ? "تم رفع الحظر" : "تم حظر المستخدم");
-  }
-
-  async function toggleAdmin(u: UserProfile) {
-    if (u.id === firebaseUser?.uid) {
-      toast.error("لا يمكنك تغيير صلاحياتك الخاصة");
-      return;
-    }
-    const role = u.role === "admin" ? "user" : "admin";
-    await setUserRole(u.id, role);
-    setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, role } : x)));
-    toast.success(role === "admin" ? "تمت الترقية لمشرف" : "تم إلغاء صلاحية الإشراف");
   }
 
   return (
@@ -79,10 +72,14 @@ export default function AdminUsersPage() {
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2 py-1 text-xs font-bold ${
-                        u.role === "admin" ? "bg-brand-primary/10 text-brand-primary" : "bg-black/5 text-black/50"
+                        u.role === "owner"
+                          ? "bg-brand-secondary/20 text-brand-primary"
+                          : u.role === "admin"
+                            ? "bg-brand-primary/10 text-brand-primary"
+                            : "bg-black/5 text-black/50"
                       }`}
                     >
-                      {u.role === "admin" ? "مشرف" : "مستخدم"}
+                      {ROLE_LABEL[u.role] || u.role}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -95,17 +92,14 @@ export default function AdminUsersPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-3">
-                      <button onClick={() => toggleAdmin(u)} className="text-xs font-bold text-brand-primary">
-                        {u.role === "admin" ? "إلغاء الإشراف" : "ترقية لمشرف"}
-                      </button>
+                    {u.role !== "owner" && (
                       <button
                         onClick={() => toggleBan(u)}
                         className="text-xs font-bold text-red-600"
                       >
                         {u.banned ? "رفع الحظر" : "حظر"}
                       </button>
-                    </div>
+                    )}
                   </td>
                 </tr>
               ))}

@@ -1,16 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { listAllUsersAdmin, setUserRole } from "@/lib/users";
 import { UserProfile } from "@/lib/types";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function AdminAdminsPage() {
-  const { firebaseUser } = useAuth();
+  const router = useRouter();
+  const { firebaseUser, isSystemOwner, loading: authLoading } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    if (!authLoading && !isSystemOwner) {
+      router.replace("/dashboard");
+    }
+  }, [authLoading, isSystemOwner, router]);
 
   function refresh() {
     listAllUsersAdmin()
@@ -43,6 +51,10 @@ export default function AdminAdminsPage() {
     await setUserRole(u.id, "user");
     toast.success("تم إلغاء صلاحية الإشراف");
     refresh();
+  }
+
+  if (authLoading || !isSystemOwner) {
+    return <p className="py-24 text-center text-black/40">جاري التحقق من الصلاحيات...</p>;
   }
 
   return (

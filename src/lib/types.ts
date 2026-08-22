@@ -1,7 +1,7 @@
 export type AdStatus = "active" | "ended" | "flagged" | "deleted";
 export type SellerType = "individual" | "trader";
 export type AccountType = "individual" | "trader";
-export type UserRole = "user" | "admin";
+export type UserRole = "user" | "admin" | "owner";
 export type ReportStatus = "open" | "closed";
 
 export interface Ad {
