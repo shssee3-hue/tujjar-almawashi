@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { listAllUsersAdmin, setUserRole } from "@/lib/users";
+import { listAllUsersAdmin, setUserRole, setUserBanned } from "@/lib/users";
 import { UserProfile } from "@/lib/types";
 import { useAuth } from "@/contexts/AuthContext";
 import OwnerGuard from "@/components/OwnerGuard";
@@ -46,6 +46,12 @@ function AdminsContent() {
     refresh();
   }
 
+  async function toggleBan(u: UserProfile) {
+    await setUserBanned(u.id, !u.banned);
+    setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, banned: !x.banned } : x)));
+    toast.success(u.banned ? "تم رفع الحظر عن المشرف" : "تم إيقاف حساب المشرف");
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-extrabold text-brand-bg-dark">إدارة المشرفين</h1>
@@ -80,6 +86,7 @@ function AdminsContent() {
               <tr>
                 <th className="px-4 py-3">الاسم</th>
                 <th className="px-4 py-3">البريد</th>
+                <th className="px-4 py-3">الحالة</th>
                 <th className="px-4 py-3">إجراءات</th>
               </tr>
             </thead>
@@ -89,9 +96,23 @@ function AdminsContent() {
                   <td className="px-4 py-3 font-medium">{a.name}</td>
                   <td className="px-4 py-3">{a.email}</td>
                   <td className="px-4 py-3">
-                    <button onClick={() => demote(a)} className="text-xs font-bold text-red-600">
-                      إلغاء صلاحية الإشراف
-                    </button>
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs font-bold ${
+                        a.banned ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"
+                      }`}
+                    >
+                      {a.banned ? "غير نشط" : "نشط"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-3">
+                      <button onClick={() => toggleBan(a)} className="text-xs font-bold text-orange-600">
+                        {a.banned ? "تفعيل الحساب" : "إيقاف الحساب"}
+                      </button>
+                      <button onClick={() => demote(a)} className="text-xs font-bold text-red-600">
+                        إلغاء صلاحية الإشراف
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
