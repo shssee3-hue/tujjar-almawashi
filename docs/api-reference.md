@@ -19,6 +19,7 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 | country, region, city | string | |
 | sellerId, sellerName, sellerType, sellerRating | — | مخزّنة مباشرة على الإعلان (denormalized) |
 | phoneNumber, whatsapp | string | |
+| showCallButton, showWhatsappButton | boolean | تتحكم بظهور زر الاتصال/واتساب للمشترين — كلاهما `false` افتراضيًا؛ الرقم لا يظهر تلقائيًا أبدًا |
 | images | string[] | Data URI بصيغة base64 |
 | views, reportsCount | number | |
 | status | `active` \| `ended` \| `flagged` \| `deleted` | |
@@ -89,11 +90,16 @@ admin/owner. الدوال في `breeds.ts` و`regions.ts`.
 |---|---|
 | adId, userId, userName, text | string |
 | createdAt | number |
+| replyToId | string \| null، اختياري | حاضر فقط على رد؛ الواجهة تعرض زر "رد" فقط لصاحب الإعلان (البائع)، لكن هذا اصطلاح واجهة لا قيد صلاحيات — أي مستخدم مسجّل يقدر أصلًا ينشئ تعليقًا جذريًا |
+| hidden | boolean، اختياري | تبديل إشراف — التعليقات المخفية تُستثنى من عرض الزوار العاديين وتبقى ظاهرة للمشرف لمراجعتها |
 
 **الصلاحيات:** القراءة عامة. الإنشاء لأي مستخدم مسجّل (باسمه فقط، `userId == auth.uid`).
-الحذف لصاحب التعليق أو admin/owner (يغطي "مراقبة المحتوى" للمشرف). لا يوجد تعديل — يُحذف ويُعاد كتابته.
+الحذف لصاحب التعليق أو admin/owner فقط — **صاحب الإعلان لا يملك صلاحية حذف تعليقات
+الآخرين على إعلانه** حتى لو لم يكن هو من كتبها. التعديل الوحيد المسموح به هو تبديل
+حقل `hidden` من admin/owner فقط (`request.resource.data.diff(resource.data).affectedKeys().hasOnly(["hidden"])`)
+— نص التعليق وصاحبه لا يمكن تغييرهما أبدًا بعد النشر.
 
-**الدوال:** `createComment`, `listComments`, `deleteComment` — في `frontend/src/lib/comments.ts`.
+**الدوال:** `createComment`, `listComments`, `listCommentsForAds`, `setCommentHidden`, `deleteComment` — في `frontend/src/lib/comments.ts`.
 
 ## ratings
 
@@ -109,7 +115,8 @@ admin/owner. الدوال في `breeds.ts` و`regions.ts`.
 `ads`/`users` المُحكمتين أصلًا.
 
 **الصلاحيات:** القراءة عامة. الإنشاء/التعديل لصاحب التقييم فقط (`userId == auth.uid`
-ومعرّف المستند مطابق). الحذف لصاحب التقييم أو admin/owner.
+ومعرّف المستند مطابق)، **وبشرط ألا يكون صاحب التقييم هو نفسه بائع الإعلان** (القاعدة
+تتحقق من ذلك مباشرة عبر `get()` على مستند الإعلان). الحذف لصاحب التقييم أو admin/owner.
 
 **الدوال:** `submitRating`, `getMyRating`, `listRatings`, `getAverageRating` — في `frontend/src/lib/ratings.ts`.
 

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { loginUser, authErrorMessage } from "@/lib/auth";
 import BackButton from "@/components/BackButton";
+import PasswordInput from "@/components/PasswordInput";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -48,12 +49,10 @@ export default function LoginPage() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium">كلمة المرور</label>
-            <input
-              type="password"
+            <PasswordInput
               required
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
+              onChange={setPassword}
               placeholder="••••••••"
             />
           </div>

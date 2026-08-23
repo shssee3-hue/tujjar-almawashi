@@ -7,6 +7,7 @@ export default function ToasterProvider() {
     <Toaster
       position="top-center"
       toastOptions={{
+        duration: 5000,
         style: {
           fontFamily: "var(--font-tajawal)",
           direction: "rtl",

@@ -69,11 +69,19 @@ service cloud.firestore {
       allow delete: if isSystemOwner();
     }
 
-    // comments/{commentId} — per-ad discussion
+    // comments/{commentId} — per-ad discussion. A reply is just a regular
+    // comment with replyToId set to its parent's id; the UI only exposes
+    // replying to the ad's own seller, but that's a UI-level convention, not
+    // a security boundary — anyone signed in may already write a top-level
+    // comment, so there is nothing extra to protect by restricting who sets
+    // replyToId.
     match /comments/{commentId} {
       allow read: if true;
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if false;
+      // The only update ever allowed is an admin toggling "hidden" for
+      // moderation — comment text/author can never be altered after posting.
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["hidden"]);
       allow delete: if isAdmin()
         || (isSignedIn() && resource.data.userId == request.auth.uid);
     }

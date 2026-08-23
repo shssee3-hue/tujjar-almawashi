@@ -40,6 +40,8 @@ export interface Ad {
   status: AdStatus;
   featured?: boolean;
   oathAccepted: boolean;
+  showCallButton: boolean;
+  showWhatsappButton: boolean;
 }
 
 export interface UserProfile {
@@ -93,6 +95,8 @@ export interface Comment {
   userName: string;
   text: string;
   createdAt: number;
+  replyToId?: string | null;
+  hidden?: boolean;
 }
 
 export interface Rating {

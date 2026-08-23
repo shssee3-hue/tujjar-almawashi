@@ -3,6 +3,7 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  updateDoc,
   getDocs,
   query,
   where,
@@ -18,8 +19,16 @@ export async function createComment(data: {
   userId: string;
   userName: string;
   text: string;
+  replyToId?: string;
 }) {
   await addDoc(commentsCol, { ...data, createdAt: Date.now() });
+}
+
+// Admin-only moderation toggle — the comment's own text is never changed via
+// this path, only whether it's shown to regular visitors (see firestore.rules,
+// which restricts an update to touching just this one field).
+export async function setCommentHidden(id: string, hidden: boolean) {
+  await updateDoc(doc(db, "comments", id), { hidden });
 }
 
 export async function listComments(adId: string): Promise<Comment[]> {

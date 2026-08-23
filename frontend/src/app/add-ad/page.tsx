@@ -51,6 +51,8 @@ function AddAdForm() {
   const [city, setCity] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [showCallButton, setShowCallButton] = useState(false);
+  const [showWhatsappButton, setShowWhatsappButton] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [loadingAd, setLoadingAd] = useState(!!editId);
@@ -94,6 +96,8 @@ function AddAdForm() {
       setCity(ad.city);
       setPhoneNumber(ad.phoneNumber);
       setWhatsapp(ad.whatsapp);
+      setShowCallButton(!!ad.showCallButton);
+      setShowWhatsappButton(!!ad.showWhatsappButton);
       setImages(ad.images || []);
       setLoadingAd(false);
     });
@@ -152,6 +156,8 @@ function AddAdForm() {
         sellerRating: profile.rating || 0,
         phoneNumber,
         whatsapp,
+        showCallButton,
+        showWhatsappButton,
         images,
         oathAccepted: true,
       };
@@ -264,7 +270,15 @@ function AddAdForm() {
             </div>
 
             <div className="mt-6 text-sm text-black/50">
-              📞 {phoneNumber} {whatsapp && `· واتساب: ${whatsapp}`}
+              {showCallButton || showWhatsappButton ? (
+                <>
+                  {showCallButton && `📞 ${phoneNumber}`}
+                  {showCallButton && showWhatsappButton && " · "}
+                  {showWhatsappButton && `💬 واتساب: ${whatsapp}`}
+                </>
+              ) : (
+                "لن يظهر رقم تواصل — لم تُفعّل أي طريقة تواصل"
+              )}
             </div>
           </div>
         </div>
@@ -526,6 +540,36 @@ function AddAdForm() {
               className="w-full rounded-xl border border-black/10 px-4 py-2.5 text-right outline-none focus:border-brand-secondary"
             />
           </div>
+        </div>
+
+        <div className="rounded-xl border border-black/10 bg-brand-bg-light p-4">
+          <p className="mb-2 text-sm font-medium">
+            طرق التواصل الظاهرة للمشترين داخل الإعلان
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={showCallButton}
+                onChange={(e) => setShowCallButton(e.target.checked)}
+              />
+              📞 إظهار زر الاتصال
+            </label>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={showWhatsappButton}
+                onChange={(e) => setShowWhatsappButton(e.target.checked)}
+                disabled={!whatsapp.trim()}
+              />
+              💬 إظهار زر واتساب
+            </label>
+          </div>
+          <p className="mt-2 text-xs text-black/40">
+            رقمك لا يظهر تلقائيًا للمشترين — لن يظهر إلا إذا فعّلت أحد الخيارين
+            أعلاه. يمكنك أيضًا كتابته يدويًا داخل الوصف إن رغبت بإظهاره دون
+            تفعيل أي زر.
+          </p>
         </div>
 
         <div>

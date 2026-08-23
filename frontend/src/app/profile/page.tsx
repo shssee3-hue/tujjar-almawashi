@@ -54,7 +54,9 @@ export default function ProfilePage() {
       setComments([]);
       return;
     }
-    listCommentsForAds(ads.map((a) => a.id)).then(setComments);
+    listCommentsForAds(ads.map((a) => a.id)).then((res) =>
+      setComments(res.filter((c) => !c.hidden))
+    );
   }, [ads]);
 
   const adTitleById = Object.fromEntries(ads.map((a) => [a.id, a.title]));

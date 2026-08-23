@@ -154,7 +154,7 @@ export default function AdDetailsClient() {
               </div>
             </div>
 
-            <CommentsSection adId={ad.id} />
+            <CommentsSection adId={ad.id} sellerId={ad.sellerId} />
           </div>
         </div>
 
@@ -173,13 +173,15 @@ export default function AdDetailsClient() {
           </div>
 
           <div className="mt-6 flex flex-col gap-2">
-            <a
-              href={`tel:${ad.phoneNumber}`}
-              className="rounded-xl bg-brand-primary py-3 text-center font-bold text-white hover:brightness-110"
-            >
-              📞 اتصال: {ad.phoneNumber}
-            </a>
-            {ad.whatsapp && (
+            {ad.showCallButton && (
+              <a
+                href={`tel:${ad.phoneNumber}`}
+                className="rounded-xl bg-brand-primary py-3 text-center font-bold text-white hover:brightness-110"
+              >
+                📞 اتصال: {ad.phoneNumber}
+              </a>
+            )}
+            {ad.showWhatsappButton && ad.whatsapp && (
               <a
                 href={`https://wa.me/${ad.whatsapp.replace(/[^0-9]/g, "")}`}
                 target="_blank"
@@ -188,6 +190,11 @@ export default function AdDetailsClient() {
               >
                 💬 واتساب
               </a>
+            )}
+            {!ad.showCallButton && !ad.showWhatsappButton && (
+              <p className="text-center text-sm text-black/40">
+                لم يفعّل البائع إظهار رقم تواصل — يمكنك التواصل عبر التعليقات.
+              </p>
             )}
           </div>
 

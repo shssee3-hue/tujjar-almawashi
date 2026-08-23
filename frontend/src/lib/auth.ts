@@ -33,7 +33,7 @@ export async function loginUser(email: string, password: string) {
 export function authErrorMessage(error: unknown): string {
   const code = (error as { code?: string })?.code || "";
   const map: Record<string, string> = {
-    "auth/email-already-in-use": "هذا البريد الإلكتروني مستخدم بالفعل",
+    "auth/email-already-in-use": "هذا البريد مسجّل مسبقًا",
     "auth/invalid-email": "صيغة البريد الإلكتروني غير صحيحة",
     "auth/weak-password": "كلمة المرور ضعيفة، يجب ألا تقل عن 6 أحرف",
     "auth/user-not-found": "لا يوجد حساب بهذا البريد الإلكتروني",

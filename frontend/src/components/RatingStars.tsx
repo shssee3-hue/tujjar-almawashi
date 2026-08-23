@@ -53,7 +53,7 @@ export default function RatingStars({ adId, sellerId }: { adId: string; sellerId
             onMouseEnter={() => !isOwnAd && setHover(n)}
             onClick={() => !isOwnAd && guard(() => rate(n))}
             className={`text-xl leading-none ${isOwnAd ? "cursor-not-allowed" : ""} ${
-              n <= (displayValue || Math.round(average)) ? "text-brand-secondary" : "text-black/20"
+              n <= displayValue ? "text-brand-secondary" : "text-black/20"
             }`}
             aria-label={`تقييم ${n} من 5`}
           >

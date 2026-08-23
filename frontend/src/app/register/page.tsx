@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { registerUser, authErrorMessage } from "@/lib/auth";
 import { AccountType } from "@/lib/types";
 import BackButton from "@/components/BackButton";
+import PasswordInput from "@/components/PasswordInput";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("individual");
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -22,6 +24,10 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!agreed) {
       toast.error("يجب الموافقة على الشروط والأحكام");
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error("كلمتا المرور غير متطابقتين");
       return;
     }
     setLoading(true);
@@ -103,13 +109,15 @@ export default function RegisterPage() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium">كلمة المرور</label>
-            <input
-              type="password"
+            <PasswordInput required minLength={6} value={password} onChange={setPassword} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">تأكيد كلمة المرور</label>
+            <PasswordInput
               required
               minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
             />
           </div>
           <label className="flex items-start gap-2 text-sm text-black/60">
