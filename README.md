@@ -39,7 +39,8 @@ npm run dev
 | لوحة التحكم | https://tujjar-almawashi.web.app/dashboard |
 | حساب المالك (owner) | `owner@tujjar-almawashi.com` — كلمة المرور غير معروضة هنا لأسباب أمنية |
 | الشروط والأحكام | https://tujjar-almawashi.web.app/terms |
-| التقرير النهائي | [`docs/tujjar-report.html`](docs/tujjar-report.html) |
+| التقرير النهائي (صفحة حية) | https://shssee3-hue.github.io/tujjar-almawashi/tujjar-report.html |
+| التقرير النهائي (ملف المصدر) | [`docs/tujjar-report.html`](docs/tujjar-report.html) |
 | البنية التقنية | [`docs/architecture.md`](docs/architecture.md) |
 | مرجع البيانات | [`docs/api-reference.md`](docs/api-reference.md) |
 | خارطة الطريق | [`docs/roadmap.md`](docs/roadmap.md) |
