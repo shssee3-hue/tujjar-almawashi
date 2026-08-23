@@ -40,9 +40,13 @@ service cloud.firestore {
         && request.resource.data.role == "user";
       allow update: if isSystemOwner()
         || (isOwner(userId)
-            // owners can edit their own profile but never escalate role/ban/rating/reportsCount
+            // owners can edit their own profile but never escalate role/ban/rating/reportsCount.
+            // "banned" is never set at profile creation (only an admin ever
+            // writes it later via setUserBanned), so direct dot access would
+            // throw and deny this whole rule for every never-banned account —
+            // i.e. almost everyone — hence get() with a default here.
             && request.resource.data.role == resource.data.role
-            && request.resource.data.banned == resource.data.banned
+            && request.resource.data.get("banned", false) == resource.data.get("banned", false)
             && request.resource.data.rating == resource.data.rating
             && request.resource.data.reportsCount == resource.data.reportsCount);
       allow delete: if isSystemOwner();
@@ -51,18 +55,58 @@ service cloud.firestore {
     // ads/{adId}
     match /ads/{adId} {
       allow read: if true;
+
+      function ownSellerProfile() {
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      }
+
       // oathAccepted enforces the mandatory commission-acknowledgment checkbox
       // at the database layer, not just in the UI — a direct API/SDK call
       // that omits it (or sets it to anything but true) is rejected here
       // regardless of what the client claims to have shown the user.
+      //
+      // Every other trust/moderation-relevant field is pinned to its
+      // guaranteed initial value too — a direct API call (bypassing
+      // createAd()) could otherwise create an ad that is already
+      // "featured" for free, pre-seeded with fake views/reports, or
+      // impersonating a different seller identity (name/type/rating are
+      // denormalized from the caller's own profile, so they're checked
+      // against it rather than trusted as given).
       allow create: if isSignedIn()
         && request.resource.data.sellerId == request.auth.uid
+        && request.resource.data.sellerName == ownSellerProfile().name
+        && request.resource.data.sellerType == ownSellerProfile().accountType
+        && request.resource.data.sellerRating == ownSellerProfile().rating
         && request.resource.data.status == "active"
-        && request.resource.data.oathAccepted == true;
+        && request.resource.data.oathAccepted == true
+        && request.resource.data.views == 0
+        && request.resource.data.reportsCount == 0
+        && (!("featured" in request.resource.data) || request.resource.data.featured == false);
+
+      // A non-admin owner may edit their own ad's content freely, but not
+      // the fields that exist specifically to record moderation/trust state:
+      // featured, reportsCount and views stay untouched, and status may only
+      // move to "deleted" (the seller's own soft-delete) — not, say, back to
+      // "active" to quietly reverse an admin's "flagged" decision.
       allow update: if isAdmin()
         || (isSignedIn()
             && resource.data.sellerId == request.auth.uid
-            && request.resource.data.sellerId == resource.data.sellerId);
+            && request.resource.data.sellerId == resource.data.sellerId
+            // "featured" may be entirely absent on older/never-featured ads —
+            // direct dot access on a missing key throws in rules and denies
+            // the whole expression, so this must use get() with a default.
+            && request.resource.data.get("featured", false) == resource.data.get("featured", false)
+            && request.resource.data.reportsCount == resource.data.reportsCount
+            && request.resource.data.views == resource.data.views
+            && (request.resource.data.status == resource.data.status
+                || request.resource.data.status == "deleted"))
+        // The public view counter: open to anyone (including signed-out
+        // visitors), but scoped so tightly it can't be used for anything
+        // else — the only field allowed to change is "views", and only by
+        // exactly +1 per call.
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(["views"])
+            && request.resource.data.views == resource.data.views + 1);
+
       // Permanent (hard) deletion is an owner-only "sensitive review" action;
       // everyone else removes an ad via update (status -> "deleted"), which
       // stays reversible and is already covered by the update rule above.
