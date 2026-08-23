@@ -1,0 +1,438 @@
+<title>تقرير تجّار المواشي</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --brand-primary: #5A4632;
+    --brand-primary-ink: #3E3122;
+    --brand-secondary: #C9A66B;
+    --bg: #F7F3EC;
+    --surface: #FFFFFF;
+    --surface-2: #F0E9DD;
+    --ink: #241E16;
+    --ink-soft: #6B5F4E;
+    --rule: #E3D9C6;
+    --ok-bg: #E7EEDD;
+    --ok-ink: #4B6B2F;
+    --gap-bg: #F6E4D3;
+    --gap-ink: #9A5B23;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+    --sans: "Tajawal", "Segoe UI", sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1A1611;
+      --surface: #221D16;
+      --surface-2: #2A241A;
+      --ink: #EFE7D8;
+      --ink-soft: #B8AB92;
+      --rule: #3A3324;
+      --brand-secondary: #D9B87C;
+      --ok-bg: #2B331F;
+      --ok-ink: #A7CC7E;
+      --gap-bg: #3A2A19;
+      --gap-ink: #E3A868;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1A1611;
+    --surface: #221D16;
+    --surface-2: #2A241A;
+    --ink: #EFE7D8;
+    --ink-soft: #B8AB92;
+    --rule: #3A3324;
+    --brand-secondary: #D9B87C;
+    --ok-bg: #2B331F;
+    --ok-ink: #A7CC7E;
+    --gap-bg: #3A2A19;
+    --gap-ink: #E3A868;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); }
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    color: var(--ink);
+    direction: rtl;
+    line-height: 1.75;
+  }
+  ::selection { background: var(--brand-secondary); color: var(--brand-primary-ink); }
+
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+
+  header.hero {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--brand-secondary);
+    text-transform: uppercase;
+  }
+  h1 {
+    font-size: clamp(28px, 5vw, 40px);
+    font-weight: 900;
+    margin: 0;
+    color: var(--brand-primary);
+    text-wrap: balance;
+  }
+  .hero-sub {
+    font-size: 17px;
+    color: var(--ink-soft);
+    max-width: 62ch;
+  }
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    background: var(--surface-2);
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+  }
+  .pill a { color: inherit; text-decoration: none; }
+  .pill.link { color: var(--brand-primary); border-color: var(--brand-secondary); }
+
+  section { margin-bottom: 48px; }
+  h2 {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--brand-primary);
+    margin: 0 0 18px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  h2 .num {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--brand-secondary);
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 24px 0 10px;
+    color: var(--ink);
+  }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 12px; padding-inline-start: 22px; }
+  li { margin-bottom: 6px; }
+  a { color: var(--brand-primary); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    padding: 22px 24px;
+  }
+
+  /* checklist */
+  .checklist { display: flex; flex-direction: column; gap: 10px; }
+  .check-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+  }
+  .check-row .idx {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-soft);
+    padding-top: 2px;
+  }
+  .check-row .body strong { display: block; font-size: 15px; margin-bottom: 3px; }
+  .check-row .body span.note { font-size: 13.5px; color: var(--ink-soft); }
+  .status {
+    font-size: 12px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    background: var(--ok-bg);
+    color: var(--ok-ink);
+  }
+
+  /* file tree */
+  .tree {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.9;
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    color: var(--ink);
+    direction: ltr;
+    text-align: left;
+    white-space: pre;
+  }
+  .tree .c { color: var(--ink-soft); }
+  .tree .r { color: var(--brand-primary); font-weight: 600; }
+
+  .found-fixed {
+    border-inline-start: 3px solid var(--brand-secondary);
+    padding: 4px 18px;
+    background: var(--surface);
+    border-radius: 0 12px 12px 0;
+  }
+
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 640px) {
+    .grid2 { grid-template-columns: 1fr; }
+  }
+  .grid2 .card h3 { margin-top: 0; }
+  .strengths h3 { color: var(--ok-ink); }
+  .gaps h3 { color: var(--gap-ink); }
+  .strengths ul li::marker, .gaps ul li::marker { color: var(--brand-secondary); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: right; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+  th { color: var(--ink-soft); font-weight: 700; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.03em; }
+  td.mono, th.mono { font-family: var(--mono); direction: ltr; text-align: left; font-size: 12.5px; }
+
+  footer.report-footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-size: 13px;
+    color: var(--ink-soft);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tag {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+  }
+</style>
+
+<div class="page">
+
+  <header class="hero">
+    <div class="eyebrow">تقرير تسليم مشروع</div>
+    <h1>تجّار المواشي — منصة بيع وشراء المواشي</h1>
+    <p class="hero-sub">
+      منصة ويب كاملة لبيع وشراء المواشي في السعودية ودول الخليج، مبنية بالكامل
+      وتم فحصها فعليًا (وليس فقط بناؤها) على متصفح حقيقي متصل بقاعدة بيانات
+      Firebase فعلية — تسجيل حسابات حقيقية، نشر إعلان حقيقي بصورة مضغوطة، وتفعيل
+      صلاحيات المشرف والتحقق منها.
+    </p>
+    <div class="hero-meta">
+      <span class="pill link">🔗 <a href="https://tujjar-almawashi.web.app" target="_blank">tujjar-almawashi.web.app</a></span>
+      <span class="pill">Next.js 16 · App Router</span>
+      <span class="pill">Firebase (Firestore + Auth + Hosting)</span>
+      <span class="pill">Tailwind CSS v4</span>
+    </div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span> ما تم تنفيذه</h2>
+    <div class="card">
+      <h3>الصفحات العامة</h3>
+      <p>الرئيسية بحقول بحث وأقسام وإعلانات مميزة، جميع الإعلانات مع فلترة وترتيب وترقيم صفحات، صفحة إعلان مفردة بمعرض صور وخريطة ومعلومات بائع، بحث متقدم بفلاتر سعر دقيقة، تسجيل دخول/تسجيل حساب، والشروط والأحكام بالنص المطلوب حرفيًا.</p>
+      <h3>حساب المستخدم</h3>
+      <p>تعديل الاسم ورقم الجوال، تبويبات للإعلانات (نشطة / مميزة / منتهية / مخالفة)، تعديل وحذف الإعلانات الخاصة.</p>
+      <h3>لوحة تحكم المشرف</h3>
+      <p>نظرة عامة بإحصائيات حية + قسم "أحدث البلاغات" (حصري للمشرف)، إدارة كاملة للإعلانات (تمييز/إخفاء/حذف نهائي)، إدارة المستخدمين (حظر/ترقية)، إدارة البلاغات، إدارة السلالات والمناطق، إدارة المشرفين، وإعدادات الموقع (بما فيها وضع الصيانة المُفعَّل فعليًا وليس شكليًا).</p>
+      <h3>الأمان والصلاحيات</h3>
+      <p>كل قواعد الوصول مفروضة داخل <code>firestore.rules</code> نفسها (RBAC حقيقي على مستوى قاعدة البيانات) وليس فقط في واجهة المستخدم — بمعنى أن تجاوز الواجهة لا يمنح أي صلاحية إضافية.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span> بنية المشروع</h2>
+    <div class="tree">
+<span class="c">src/</span>
+├── <span class="c">app/</span>                      <span class="c"># صفحات Next.js — كل مجلد = مسار</span>
+│   ├── page.tsx                <span class="c">/</span>
+│   ├── ads/page.tsx            <span class="c">/ads</span>
+│   ├── ad/page.tsx             <span class="c">/ad?id=&lt;id&gt;</span>
+│   ├── add-ad/page.tsx         <span class="c">/add-ad</span>
+│   ├── search/page.tsx         <span class="c">/search</span>
+│   ├── profile/page.tsx        <span class="c">/profile</span>
+│   ├── login/, register/       <span class="c">/login  /register</span>
+│   ├── terms/page.tsx          <span class="c">/terms</span>
+│   └── dashboard/              <span class="r">محمي بـ AdminGuard</span>
+│       ├── page.tsx            <span class="c">نظرة عامة</span>
+│       ├── ads/ users/ reports/
+│       ├── breeds/ regions/
+│       └── admins/ settings/
+├── <span class="c">components/</span>               <span class="c"># Navbar · AdCard · ImageUploader · AdminGuard...</span>
+├── <span class="c">contexts/AuthContext.tsx</span>   <span class="c"># جلسة الدخول + بروفايل + الدور</span>
+└── <span class="c">lib/</span>                       <span class="c"># طبقة الوصول لـ Firestore</span>
+    ├── ads.ts · users.ts · reports.ts
+    └── breeds.ts · regions.ts · settings.ts · auth.ts
+
+<span class="r">firestore.rules</span>              <span class="c">قواعد RBAC</span>
+<span class="r">firestore.indexes.json</span>       <span class="c">الفهارس المركّبة</span>
+<span class="r">firebase.json</span>                <span class="c">إعداد Hosting (تصدير ثابت)</span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span> نتائج الفحص الفعلي</h2>
+    <p style="color:var(--ink-soft); font-size:14px;">كل بند أدناه تم اختباره فعليًا عبر متصفح حقيقي متصل بمشروع Firebase حقيقي (<code>tujjar-almawashi</code>) — وليس فقط بقراءة الكود.</p>
+    <div class="checklist">
+
+      <div class="check-row">
+        <div class="idx">01</div>
+        <div class="body"><strong>فحص جميع الصفحات (17 مسار)</strong><span class="note">كل صفحة فُتحت وتحقق من محتواها فعليًا: الرئيسية، الإعلانات، إعلان مفرد، إضافة إعلان، بحث، الملف الشخصي، الدخول/التسجيل، الشروط، و7 صفحات داخل لوحة التحكم.</span></div>
+        <div class="status">تم</div>
+      </div>
+
+      <div class="check-row">
+        <div class="idx">02</div>
+        <div class="body"><strong>فحص جميع الروابط</strong><span class="note">روابط الهيدر والفوتر والبطاقات وأزرار "تعديل/حذف/عرض" تؤدي كلها لوجهاتها الصحيحة.</span></div>
+        <div class="status">تم</div>
+      </div>
+
+      <div class="check-row">
+        <div class="idx">03</div>
+        <div class="body"><strong>تسجيل الدخول والتسجيل</strong><span class="note">أُنشئ حساب حقيقي عبر Firebase Auth، وتم تسجيل الدخول به والحصول على جلسة صالحة.</span></div>
+        <div class="status">تم</div>
+      </div>
+
+      <div class="check-row">
+        <div class="idx">04</div>
+        <div class="body"><strong>المستخدم العادي لا يرى محتوى إداري</strong><span class="note">فتح /dashboard بدون تسجيل دخول يُعيد التوجيه فورًا لصفحة الدخول — والحماية مفروضة أيضًا داخل قواعد Firestore نفسها، فلا فائدة من تجاوز الواجهة.</span></div>
+        <div class="status">تم</div>
+      </div>
+
+      <div class="check-row">
+        <div class="idx">05</div>
+        <div class="body"><strong>لوحة التحكم تعمل للمشرف فقط</strong><span class="note">تم اختبار الحالتين: حساب عادي يُمنع من الترقية الذاتية لدور "admin" (رفضته قواعد الأمان فعليًا)، وحساب بعد ترقيته يفتح لوحة التحكم كاملة بكل أقسامها.</span></div>
+        <div class="status">تم</div>
+      </div>
+
+      <div class="check-row">
+        <div class="idx">06</div>
+        <div class="body"><strong>نماذج إضافة الإعلان والبحث المتقدم</strong><span class="note">نُشر إعلان حقيقي (نعجة نجدي، 850 ريال) وظهر فورًا في القائمة العامة وفي نتائج الفلترة والترتيب.</span></div>
+        <div class="status">تم</div>
+      </div>
+
+      <div class="check-row">
+        <div class="idx">07</div>
+        <div class="body"><strong>رفع الصور</strong><span class="note">رفعت صورة اختبار، وتأكدت أن الضغط التلقائي يعمل (تصغير الحجم قبل الحفظ) وأن المعاينة والعرض في صفحة الإعلان يعملان.</span></div>
+        <div class="status">تم</div>
+      </div>
+
+      <div class="check-row">
+        <div class="idx">08</div>
+        <div class="body"><strong>الشروط والأحكام</strong><span class="note">تمت مطابقة النص المعروض حرفيًا بالنص المطلوب في الطلب الأصلي، بند ببند.</span></div>
+        <div class="status">تم</div>
+      </div>
+
+    </div>
+
+    <h3 style="margin-top:28px;">خلل حقيقي اكتُشف وأُصلح أثناء الفحص</h3>
+    <div class="found-fixed">
+      <p><strong>المشكلة:</strong> صفحة الإعلان المفرد كانت بمسار ديناميكي كلاسيكي <code style="font-family:var(--mono)">/ad/[id]</code>. عند النشر الثابت (بدون سيرفر خلفي، تجنبًا لأي خطة دفع)، لا توجد وسيلة موثوقة لجعل المتصفح يستخرج المعرّف الحقيقي من الرابط لأي إعلان جديد — الأمر ظهر فقط عند التجربة الفعلية بإعلان حقيقي، وليس بالبناء وحده.</p>
+      <p><strong>الحل:</strong> تحويل المسار إلى <code style="font-family:var(--mono)">/ad?id=&lt;المعرّف&gt;</code>، وهو أسلوب يعمل بثبات مع الاستضافة الثابتة دون الحاجة لأي خادم. تم اختباره وتأكيده على الرابط المنشور فعليًا بعد الإصلاح.</p>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="card strengths">
+      <h3>نقاط القوة</h3>
+      <ul>
+        <li>صلاحيات حقيقية على مستوى قاعدة البيانات، لا يمكن تجاوزها من الواجهة.</li>
+        <li>لا تكاليف استضافة أو تخزين — Firestore + Auth + Hosting كلها ضمن الخطة المجانية.</li>
+        <li>ضغط الصور من جهة المستخدم قبل الرفع، يقلل الحجم والتكلفة.</li>
+        <li>هوية بصرية متسقة بالألوان والخط المطلوبين في كل الصفحات.</li>
+        <li>تم اكتشاف وإصلاح خلل توجيه حقيقي أثناء الفحص، لا نظريًا فقط.</li>
+      </ul>
+    </div>
+    <div class="card gaps">
+      <h3>نقاط ناقصة وقيود معروفة</h3>
+      <ul>
+        <li>لا يوجد تحقق برقم الجوال (OTP) — التسجيل بالبريد وكلمة المرور فقط.</li>
+        <li>لا يوجد نظام دفع فعلي للإعلانات المميزة — التفعيل يدوي من لوحة التحكم حاليًا.</li>
+        <li>المدينة حقل نصي حر (لا قائمة معتمدة لكل منطقة)، لتفادي الحاجة لبيانات جغرافية كاملة.</li>
+        <li>لا اختبارات آلية (unit/e2e) ولا CI/CD حتى الآن.</li>
+        <li>تخزين الصور كنص Base64 داخل المستند مناسب للحجم الحالي، لكنه ليس بديلاً كاملاً لتخزين ملفات حقيقي إن كبر عدد/حجم الصور مستقبلاً.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span> اقتراحات تحسين لاحقة</h2>
+    <ol>
+      <li>ربط بوابة دفع فعلية (مدى/Apple Pay عبر Moyasar أو Tap) لتفعيل الإعلانات المميزة تلقائيًا.</li>
+      <li>إضافة تحقق برقم الجوال عبر Firebase Phone Auth عندما يصبح ذلك أولوية.</li>
+      <li>الانتقال لتخزين الصور في Cloud Storage الحقيقي إذا فُعّلت خطة Blaze مستقبلاً — يرفع حد حجم/جودة الصور.</li>
+      <li>إضافة صفحة تقييم فعلية للبائع (النموذج موجود بالبيانات لكنه غير مُفعّل بواجهة تقييم).</li>
+      <li>ربط اسم نطاق مخصص (مثل tujjar-almawashi.sa) بدل الرابط الفرعي الحالي.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span> تحديثات بعد التقرير الأول</h2>
+    <div class="card">
+      <h3>صور حقيقية بدل الرموز التعبيرية</h3>
+      <p>استُبدلت أيقونات أقسام المواشي بالرئيسية وخلفية الهيرو بصور حقيقية مرخّصة استخدامًا حرًا (Wikimedia Commons وFlickr)، بشفافية 85% حسب الطلب. المصادر والتراخيص موثقة في <code>public/images/CREDITS.md</code>.</p>
+      <h3>نظام صلاحيات ثلاثي: owner / admin / user</h3>
+      <p>أُضيف دور "مالك النظام" (owner) منفصل عن "مشرف" — هو الوحيد القادر على ترقية/إلغاء المشرفين، وعلى الوصول لصفحتي "إدارة المستخدمين" و"إعدادات الموقع" (تختفيان تمامًا عن أي مشرف عادي، مع توجيه تلقائي عند محاولة الدخول برابط مباشر). القيد مفروض في الواجهة وأيضًا داخل قواعد Firestore نفسها — تم اختباره فعليًا بحساب مشرف تجريبي حاول تجاوز الواجهة عبر طلب مباشر لقاعدة البيانات ورُفض الطلب.</p>
+      <h3>حالة نشاط المشرفين</h3>
+      <p>صفحة "المشرفون" تعرض الآن حالة كل حساب (نشط / غير نشط) مع زر تفعيل/إيقاف مباشر، دون الحاجة للتنقل بين الصفحات.</p>
+      <h3>زر رجوع في كل صفحة</h3>
+      <p>أُضيف زر "رجوع" موحّد لكل الصفحات العامة وكل أقسام لوحة التحكم الثمانية — يرجع للصفحة السابقة فعليًا، ويوّجه لوجهة منطقية بديلة إن فُتحت الصفحة برابط مباشر بدون تاريخ تصفح.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">06</span> الوصول والحسابات</h2>
+    <div class="card">
+      <table>
+        <tr><th>البند</th><th>القيمة</th></tr>
+        <tr><td>الرابط المنشور</td><td class="mono"><a href="https://tujjar-almawashi.web.app">tujjar-almawashi.web.app</a></td></tr>
+        <tr><td>مشروع Firebase</td><td class="mono">tujjar-almawashi</td></tr>
+        <tr><td>حساب مالك النظام (owner)</td><td>تم إنشاؤه للتجربة — بياناته في المحادثة (وليس هنا لأسباب أمنية)</td></tr>
+        <tr><td>مستودع GitHub</td><td>لم يُنشأ بعد — يمكن إنشاؤه عند الطلب</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <footer class="report-footer">
+    <span>تقرير فحص نهائي — تجّار المواشي</span>
+    <span>Next.js + Firebase · تصدير ثابت</span>
+  </footer>
+
+</div>
