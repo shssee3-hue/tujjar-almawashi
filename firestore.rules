@@ -29,9 +29,13 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // users/{uid} — profile documents keyed by auth uid
+    // users/{uid} — profile documents keyed by auth uid.
+    // Only the owner may read another user's document (list/admin views);
+    // everyone else may only read their own — nothing in the public-facing
+    // app needs to read another user's profile (ad listings show seller
+    // info via denormalized fields on the ad itself, not a users lookup).
     match /users/{userId} {
-      allow read: if true;
+      allow read: if isOwner(userId) || isSystemOwner();
       allow create: if isOwner(userId)
         && request.resource.data.role == "user";
       allow update: if isSystemOwner()

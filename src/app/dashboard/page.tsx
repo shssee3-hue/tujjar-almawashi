@@ -5,23 +5,32 @@ import Link from "next/link";
 import { listAllAdsAdmin } from "@/lib/ads";
 import { listAllUsersAdmin } from "@/lib/users";
 import { listRecentReportsAdmin } from "@/lib/reports";
-import { Ad, UserProfile, Report } from "@/lib/types";
+import { Ad, Report } from "@/lib/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function DashboardOverviewPage() {
+  const { isSystemOwner } = useAuth();
   const [ads, setAds] = useState<Ad[]>([]);
-  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [userCount, setUserCount] = useState<number | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([listAllAdsAdmin(), listAllUsersAdmin(), listRecentReportsAdmin(10)])
-      .then(([a, u, r]) => {
-        setAds(a);
-        setUsers(u);
-        setReports(r);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    // Each fetch is independent so a permission error on one (e.g. the user
+    // list, which only the owner may read) doesn't blank out the others.
+    listAllAdsAdmin()
+      .then(setAds)
+      .catch(() => setAds([]));
+    listRecentReportsAdmin(10)
+      .then(setReports)
+      .catch(() => setReports([]));
+    if (isSystemOwner) {
+      listAllUsersAdmin()
+        .then((u) => setUserCount(u.length))
+        .catch(() => setUserCount(null));
+    }
+    setLoading(false);
+  }, [isSystemOwner]);
 
   const activeAds = ads.filter((a) => a.status === "active").length;
   const flaggedAds = ads.filter((a) => a.status === "flagged").length;
@@ -31,7 +40,9 @@ export default function DashboardOverviewPage() {
     { label: "إجمالي الإعلانات", value: ads.length, icon: "🐐" },
     { label: "إعلانات نشطة", value: activeAds, icon: "✅" },
     { label: "إعلانات مخالفة", value: flaggedAds, icon: "⚠️" },
-    { label: "إجمالي المستخدمين", value: users.length, icon: "👥" },
+    ...(isSystemOwner
+      ? [{ label: "إجمالي المستخدمين", value: userCount ?? 0, icon: "👥" }]
+      : []),
   ];
 
   return (
