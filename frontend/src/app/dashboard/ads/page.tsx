@@ -5,6 +5,8 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { listAllAdsAdmin, updateAd, hardDeleteAd } from "@/lib/ads";
 import { Ad, AdStatus } from "@/lib/types";
+import { CATEGORY_LABELS } from "@/lib/constants";
+import { useAuth } from "@/contexts/AuthContext";
 
 const STATUS_LABEL: Record<AdStatus, string> = {
   active: "نشط",
@@ -21,6 +23,7 @@ const STATUS_COLOR: Record<AdStatus, string> = {
 };
 
 export default function AdminAdsPage() {
+  const { isSystemOwner } = useAuth();
   const [ads, setAds] = useState<Ad[]>([]);
   const [filter, setFilter] = useState<AdStatus | "all">("all");
   const [loading, setLoading] = useState(true);
@@ -81,6 +84,7 @@ export default function AdminAdsPage() {
             <thead className="bg-black/5 text-right">
               <tr>
                 <th className="px-4 py-3">الإعلان</th>
+                <th className="px-4 py-3">القسم</th>
                 <th className="px-4 py-3">البائع</th>
                 <th className="px-4 py-3">السعر</th>
                 <th className="px-4 py-3">الحالة</th>
@@ -97,6 +101,7 @@ export default function AdminAdsPage() {
                       {ad.title}
                     </Link>
                   </td>
+                  <td className="px-4 py-3 text-black/50">{CATEGORY_LABELS[ad.category]}</td>
                   <td className="px-4 py-3">{ad.sellerName}</td>
                   <td className="px-4 py-3">{ad.price} ريال</td>
                   <td className="px-4 py-3">
@@ -136,12 +141,14 @@ export default function AdminAdsPage() {
                           إنهاء
                         </button>
                       )}
-                      <button
-                        onClick={() => permanentDelete(ad.id)}
-                        className="text-xs font-bold text-red-600"
-                      >
-                        حذف نهائي
-                      </button>
+                      {isSystemOwner && (
+                        <button
+                          onClick={() => permanentDelete(ad.id)}
+                          className="text-xs font-bold text-red-600"
+                        >
+                          حذف نهائي
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

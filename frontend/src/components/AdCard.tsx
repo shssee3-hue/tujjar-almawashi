@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Ad } from "@/lib/types";
+import { CATEGORY_LABELS } from "@/lib/constants";
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat("ar-SA").format(price);
@@ -8,6 +9,7 @@ function formatPrice(price: number) {
 
 export default function AdCard({ ad }: { ad: Ad }) {
   const cover = ad.images?.[0];
+  const category = ad.category || "livestock";
 
   return (
     <Link
@@ -35,7 +37,9 @@ export default function AdCard({ ad }: { ad: Ad }) {
       <div className="flex flex-1 flex-col gap-1 p-4">
         <h3 className="line-clamp-1 font-bold text-brand-bg-dark">{ad.title}</h3>
         <p className="text-sm text-black/50">
-          {ad.breed} • {ad.city}, {ad.region}
+          {category === "livestock" ? ad.breed : CATEGORY_LABELS[category] || ad.subCategory}
+          {" • "}
+          {ad.city}, {ad.region}
         </p>
         <div className="mt-auto flex items-center justify-between pt-2">
           <span className="font-extrabold text-brand-primary">

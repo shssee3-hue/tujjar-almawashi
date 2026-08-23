@@ -13,11 +13,13 @@ import {
   increment,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { Ad } from "./types";
+import { Ad, AdCategory } from "./types";
 
 const adsCol = collection(db, "ads");
 
 export interface AdFilters {
+  category?: AdCategory;
+  subCategory?: string;
   animalType?: string;
   breed?: string;
   region?: string;
@@ -96,6 +98,8 @@ export async function listAds(filters: AdFilters = {}, max = 300): Promise<Ad[]>
   const snap = await getDocs(q);
   let ads = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Ad, "id">) }));
 
+  if (filters.category) ads = ads.filter((a) => (a.category || "livestock") === filters.category);
+  if (filters.subCategory) ads = ads.filter((a) => a.subCategory === filters.subCategory);
   if (filters.animalType) ads = ads.filter((a) => a.animalType === filters.animalType);
   if (filters.breed) ads = ads.filter((a) => a.breed === filters.breed);
   if (filters.region) ads = ads.filter((a) => a.region === filters.region);
@@ -140,14 +144,17 @@ export async function listSimilarAds(ad: Ad, max = 4): Promise<Ad[]> {
   const q = query(
     adsCol,
     where("status", "==", "active"),
-    where("animalType", "==", ad.animalType),
-    fsLimit(max + 1)
+    where("category", "==", ad.category),
+    fsLimit(max + 10)
   );
   const snap = await getDocs(q);
-  return snap.docs
+  let ads = snap.docs
     .map((d) => ({ id: d.id, ...(d.data() as Omit<Ad, "id">) }))
-    .filter((a) => a.id !== ad.id)
-    .slice(0, max);
+    .filter((a) => a.id !== ad.id);
+  if (ad.category === "livestock") {
+    ads = ads.filter((a) => a.animalType === ad.animalType);
+  }
+  return ads.slice(0, max);
 }
 
 export async function listAllAdsAdmin(): Promise<Ad[]> {

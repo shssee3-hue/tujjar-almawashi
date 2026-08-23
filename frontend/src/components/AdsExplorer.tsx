@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { listAds, AdFilters } from "@/lib/ads";
-import { Ad } from "@/lib/types";
+import { Ad, AdCategory } from "@/lib/types";
 import AdCard from "@/components/AdCard";
 import Pagination from "@/components/Pagination";
 import BackButton from "@/components/BackButton";
@@ -12,6 +12,8 @@ import {
   DEFAULT_BREEDS,
   DEFAULT_REGIONS,
   SORT_OPTIONS,
+  CATEGORIES,
+  SUB_CATEGORIES,
 } from "@/lib/constants";
 
 const PAGE_SIZE = 12;
@@ -26,6 +28,10 @@ export default function AdsExplorer({
   const router = useRouter();
   const params = useSearchParams();
 
+  const [category, setCategory] = useState<AdCategory | "">(
+    (params.get("category") as AdCategory) || ""
+  );
+  const [subCategory, setSubCategory] = useState(params.get("subCategory") || "");
   const [animalType, setAnimalType] = useState(params.get("animalType") || "");
   const [breed, setBreed] = useState(params.get("breed") || "");
   const [region, setRegion] = useState(params.get("region") || "");
@@ -39,8 +45,12 @@ export default function AdsExplorer({
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
+  const isLivestock = category === "livestock" || category === "";
+
   const filters: AdFilters = useMemo(
     () => ({
+      category: (category as AdCategory) || undefined,
+      subCategory: subCategory || undefined,
       animalType: animalType || undefined,
       breed: breed || undefined,
       region: region || undefined,
@@ -50,7 +60,7 @@ export default function AdsExplorer({
       q: q || undefined,
       sort,
     }),
-    [animalType, breed, region, city, minPrice, maxPrice, q, sort]
+    [category, subCategory, animalType, breed, region, city, minPrice, maxPrice, q, sort]
   );
 
   useEffect(() => {
@@ -66,12 +76,15 @@ export default function AdsExplorer({
 
   const breedOptions = animalType ? DEFAULT_BREEDS[animalType] || [] : [];
   const regionOptions = DEFAULT_REGIONS["السعودية"] || [];
+  const subCategoryOptions = category && category !== "livestock" ? SUB_CATEGORIES[category] : [];
 
   const totalPages = Math.max(1, Math.ceil(ads.length / PAGE_SIZE));
   const pageAds = ads.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   function applyToUrl() {
     const sp = new URLSearchParams();
+    if (category) sp.set("category", category);
+    if (subCategory) sp.set("subCategory", subCategory);
     if (animalType) sp.set("animalType", animalType);
     if (breed) sp.set("breed", breed);
     if (region) sp.set("region", region);
@@ -84,6 +97,8 @@ export default function AdsExplorer({
   }
 
   function resetFilters() {
+    setCategory("");
+    setSubCategory("");
     setAnimalType("");
     setBreed("");
     setRegion("");
@@ -98,7 +113,35 @@ export default function AdsExplorer({
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
       <BackButton />
-      <h1 className="mb-6 text-2xl font-extrabold text-brand-bg-dark">{title}</h1>
+      <h1 className="mb-4 text-2xl font-extrabold text-brand-bg-dark">{title}</h1>
+
+      <div className="mb-6 flex flex-wrap gap-2">
+        <button
+          onClick={() => {
+            setCategory("");
+            setSubCategory("");
+          }}
+          className={`rounded-full px-4 py-1.5 text-sm font-bold transition ${
+            category === "" ? "bg-brand-primary text-white" : "bg-white text-black/50"
+          }`}
+        >
+          كل الأقسام
+        </button>
+        {CATEGORIES.map((c) => (
+          <button
+            key={c.key}
+            onClick={() => {
+              setCategory(c.key);
+              setSubCategory("");
+            }}
+            className={`rounded-full px-4 py-1.5 text-sm font-bold transition ${
+              category === c.key ? "bg-brand-primary text-white" : "bg-white text-black/50"
+            }`}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
         <aside className="h-fit rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
@@ -110,46 +153,68 @@ export default function AdsExplorer({
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="عنوان، وصف، سلالة..."
+                placeholder="عنوان، وصف..."
                 className="w-full rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-secondary"
               />
             </div>
 
-            <div>
-              <label className="mb-1 block font-medium">نوع الحيوان</label>
-              <select
-                value={animalType}
-                onChange={(e) => {
-                  setAnimalType(e.target.value);
-                  setBreed("");
-                }}
-                className="w-full rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-secondary"
-              >
-                <option value="">الكل</option>
-                {ANIMAL_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {isLivestock ? (
+              <>
+                <div>
+                  <label className="mb-1 block font-medium">نوع الحيوان</label>
+                  <select
+                    value={animalType}
+                    onChange={(e) => {
+                      setAnimalType(e.target.value);
+                      setBreed("");
+                    }}
+                    className="w-full rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-secondary"
+                  >
+                    <option value="">الكل</option>
+                    {ANIMAL_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            {breedOptions.length > 0 && (
-              <div>
-                <label className="mb-1 block font-medium">السلالة</label>
-                <select
-                  value={breed}
-                  onChange={(e) => setBreed(e.target.value)}
-                  className="w-full rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-secondary"
-                >
-                  <option value="">الكل</option>
-                  {breedOptions.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                {breedOptions.length > 0 && (
+                  <div>
+                    <label className="mb-1 block font-medium">السلالة</label>
+                    <select
+                      value={breed}
+                      onChange={(e) => setBreed(e.target.value)}
+                      className="w-full rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-secondary"
+                    >
+                      <option value="">الكل</option>
+                      {breedOptions.map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </>
+            ) : (
+              subCategoryOptions.length > 0 && (
+                <div>
+                  <label className="mb-1 block font-medium">التصنيف الفرعي</label>
+                  <select
+                    value={subCategory}
+                    onChange={(e) => setSubCategory(e.target.value)}
+                    className="w-full rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-secondary"
+                  >
+                    <option value="">الكل</option>
+                    {subCategoryOptions.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )
             )}
 
             <div>

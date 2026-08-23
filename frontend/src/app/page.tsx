@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ANIMAL_TYPES } from "@/lib/constants";
+import { ANIMAL_TYPES, CATEGORIES } from "@/lib/constants";
 import { listFeaturedAds } from "@/lib/ads";
 import { Ad } from "@/lib/types";
 import AdCard from "@/components/AdCard";
@@ -125,6 +125,39 @@ export default function HomePage() {
               />
               <span className="absolute inset-x-0 bottom-0 p-3 text-center font-bold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.5)]">
                 {type}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 pb-14">
+        <h2 className="mb-6 text-center text-2xl font-extrabold text-brand-bg-dark">
+          أقسام إضافية
+        </h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
+          {CATEGORIES.filter((c) => c.key !== "livestock").map((c) => (
+            <Link
+              key={c.key}
+              href={`/ads?category=${c.key}`}
+              className="group relative aspect-square overflow-hidden rounded-2xl border border-black/5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+            >
+              <Image
+                src={c.photo}
+                alt={c.label}
+                fill
+                sizes="(max-width: 640px) 50vw, 20vw"
+                className="object-cover opacity-[0.85] transition duration-300 group-hover:scale-105"
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(180deg, transparent 40%, rgba(26,20,15,0.75) 100%)",
+                }}
+              />
+              <span className="absolute inset-x-0 bottom-0 p-3 text-center font-bold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.5)]">
+                {c.label}
               </span>
             </Link>
           ))}

@@ -4,22 +4,39 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAuthGate } from "@/lib/useAuthGate";
 import { createAd, getAd, updateAd } from "@/lib/ads";
 import ImageUploader from "@/components/ImageUploader";
 import BackButton from "@/components/BackButton";
+import AuthGateModal from "@/components/AuthGateModal";
+import ImageGallery from "@/components/ImageGallery";
 import {
   ANIMAL_TYPES,
   DEFAULT_BREEDS,
   COUNTRIES,
   DEFAULT_REGIONS,
+  CATEGORIES,
+  CATEGORY_LABELS,
+  SUB_CATEGORIES,
 } from "@/lib/constants";
+import { AdCategory } from "@/lib/types";
+
+function formatPrice(price: number) {
+  return new Intl.NumberFormat("ar-SA").format(price);
+}
 
 function AddAdForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
+  const initialCategory = (searchParams.get("category") as AdCategory) || "livestock";
   const { firebaseUser, profile, loading: authLoading } = useAuth();
+  const { handleSuccess } = useAuthGate();
 
+  const [step, setStep] = useState<"form" | "preview">("form");
+
+  const [category, setCategory] = useState<AdCategory>(initialCategory);
+  const [subCategory, setSubCategory] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -38,13 +55,6 @@ function AddAdForm() {
   const [loadingAd, setLoadingAd] = useState(!!editId);
 
   useEffect(() => {
-    if (!authLoading && !firebaseUser) {
-      toast.error("يجب تسجيل الدخول أولًا");
-      router.push("/login");
-    }
-  }, [authLoading, firebaseUser, router]);
-
-  useEffect(() => {
     if (profile) {
       setPhoneNumber((p) => p || profile.phoneNumber || "");
     }
@@ -58,12 +68,14 @@ function AddAdForm() {
         router.push("/profile");
         return;
       }
+      setCategory(ad.category || "livestock");
+      setSubCategory(ad.subCategory || "");
       setTitle(ad.title);
       setDescription(ad.description);
       setPrice(String(ad.price));
       setIsNegotiable(ad.isNegotiable);
-      setAnimalType(ad.animalType);
-      setBreed(ad.breed);
+      setAnimalType(ad.animalType || ANIMAL_TYPES[0]);
+      setBreed(ad.breed || "");
       setAge(ad.age);
       setWeight(ad.weight ? String(ad.weight) : "");
       setCountry(ad.country);
@@ -76,11 +88,20 @@ function AddAdForm() {
     });
   }, [editId, router]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!firebaseUser || !profile) return;
+  const isLivestock = category === "livestock";
 
-    if (!title.trim() || !description.trim() || !price || !breed || !region || !city || !phoneNumber) {
+  function handleReview(e: React.FormEvent) {
+    e.preventDefault();
+    if (
+      !title.trim() ||
+      !description.trim() ||
+      !price ||
+      !region ||
+      !city ||
+      !phoneNumber ||
+      (isLivestock && !breed) ||
+      (!isLivestock && !subCategory)
+    ) {
       toast.error("يرجى تعبئة جميع الحقول المطلوبة");
       return;
     }
@@ -88,18 +109,25 @@ function AddAdForm() {
       toast.error("يرجى إضافة صورة واحدة على الأقل");
       return;
     }
+    setStep("preview");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
+  async function handlePublish() {
+    if (!firebaseUser || !profile) return;
     setSubmitting(true);
     try {
       const payload = {
+        category,
+        subCategory: isLivestock ? "" : subCategory,
         title: title.trim(),
         description: description.trim(),
         price: Number(price),
         isNegotiable,
-        animalType,
-        breed,
-        age,
-        weight: weight ? Number(weight) : null,
+        animalType: isLivestock ? animalType : "",
+        breed: isLivestock ? breed : "",
+        age: isLivestock ? age : "",
+        weight: isLivestock && weight ? Number(weight) : null,
         country,
         region,
         city,
@@ -132,8 +160,109 @@ function AddAdForm() {
     return <p className="py-24 text-center text-black/40">جاري التحميل...</p>;
   }
 
+  if (!firebaseUser) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-10">
+        <BackButton />
+        <div className="rounded-2xl border border-dashed border-black/10 py-20 text-center text-black/40">
+          يجب تسجيل الدخول لإضافة إعلان
+        </div>
+        <AuthGateModal open onClose={() => router.push("/")} onSuccess={handleSuccess} />
+      </div>
+    );
+  }
+
   const breedOptions = DEFAULT_BREEDS[animalType] || [];
   const regionOptions = DEFAULT_REGIONS[country] || [];
+  const subCategoryOptions = isLivestock ? [] : SUB_CATEGORIES[category];
+
+  if (step === "preview") {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-10">
+        <button
+          onClick={() => setStep("form")}
+          className="mb-4 inline-flex items-center gap-1.5 text-sm font-bold text-brand-primary hover:underline"
+        >
+          <span aria-hidden>→</span>
+          تعديل الإعلان
+        </button>
+
+        <div className="mb-4 rounded-xl bg-brand-secondary/15 px-4 py-3 text-sm font-medium text-brand-primary">
+          هذه معاينة لشكل إعلانك كما سيظهر للمستخدمين — راجعها جيدًا قبل النشر.
+        </div>
+
+        <div className="rounded-2xl border border-black/5 bg-white p-6 shadow-sm">
+          <ImageGallery images={images} alt={title} />
+          <div className="mt-6">
+            <span className="rounded-full bg-black/5 px-3 py-1 text-xs font-bold text-black/50">
+              {CATEGORY_LABELS[category]}
+              {subCategory && ` · ${subCategory}`}
+            </span>
+            <h1 className="mt-3 text-2xl font-extrabold text-brand-bg-dark">{title}</h1>
+            <p className="mt-1 text-sm text-black/50">
+              {city}، {region} — {country}
+            </p>
+            <div className="mt-4 flex items-center gap-4">
+              <span className="text-3xl font-extrabold text-brand-primary">
+                {price ? formatPrice(Number(price)) : 0} ريال
+              </span>
+              {isNegotiable && (
+                <span className="rounded-full bg-brand-secondary/20 px-3 py-1 text-xs font-bold text-brand-primary">
+                  قابل للتفاوض
+                </span>
+              )}
+            </div>
+
+            {isLivestock && (
+              <div className="mt-6 grid grid-cols-2 gap-3 rounded-2xl bg-brand-bg-light p-4 text-sm sm:grid-cols-4">
+                <div>
+                  <p className="text-black/40">النوع</p>
+                  <p className="font-bold">{animalType}</p>
+                </div>
+                <div>
+                  <p className="text-black/40">السلالة</p>
+                  <p className="font-bold">{breed}</p>
+                </div>
+                <div>
+                  <p className="text-black/40">العمر</p>
+                  <p className="font-bold">{age || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-black/40">الوزن</p>
+                  <p className="font-bold">{weight ? `${weight} كجم` : "—"}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-6">
+              <h2 className="mb-2 font-bold text-brand-bg-dark">الوصف</h2>
+              <p className="whitespace-pre-line leading-relaxed text-black/70">{description}</p>
+            </div>
+
+            <div className="mt-6 text-sm text-black/50">
+              📞 {phoneNumber} {whatsapp && `· واتساب: ${whatsapp}`}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 flex gap-3">
+          <button
+            onClick={() => setStep("form")}
+            className="flex-1 rounded-xl border border-black/10 py-3 font-bold text-black/60"
+          >
+            تعديل الإعلان
+          </button>
+          <button
+            onClick={handlePublish}
+            disabled={submitting}
+            className="flex-1 rounded-xl bg-brand-primary py-3 font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+          >
+            {submitting ? "جاري النشر..." : editId ? "حفظ التعديلات" : "نشر الإعلان"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -143,9 +272,27 @@ function AddAdForm() {
       </h1>
 
       <form
-        onSubmit={handleSubmit}
+        onSubmit={handleReview}
         className="flex flex-col gap-5 rounded-2xl border border-black/5 bg-white p-6 shadow-sm sm:p-8"
       >
+        <div>
+          <label className="mb-1 block text-sm font-medium">القسم *</label>
+          <select
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value as AdCategory);
+              setSubCategory("");
+            }}
+            className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c.key} value={c.key}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <label className="mb-1 block text-sm font-medium">عنوان الإعلان *</label>
           <input
@@ -153,66 +300,87 @@ function AddAdForm() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
-            placeholder="مثال: نعجة نجدي عمر سنة"
+            placeholder={isLivestock ? "مثال: نعجة نجدي عمر سنة" : "عنوان الإعلان"}
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {isLivestock ? (
+          <>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium">نوع الحيوان *</label>
+                <select
+                  value={animalType}
+                  onChange={(e) => {
+                    setAnimalType(e.target.value);
+                    setBreed("");
+                  }}
+                  className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
+                >
+                  {ANIMAL_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">السلالة *</label>
+                <select
+                  required
+                  value={breed}
+                  onChange={(e) => setBreed(e.target.value)}
+                  className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
+                >
+                  <option value="">اختر السلالة</option>
+                  {breedOptions.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium">العمر</label>
+                <input
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  placeholder="مثال: سنة ونصف"
+                  className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">الوزن (كجم)</label>
+                <input
+                  type="number"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
+                />
+              </div>
+            </div>
+          </>
+        ) : (
           <div>
-            <label className="mb-1 block text-sm font-medium">نوع الحيوان *</label>
-            <select
-              value={animalType}
-              onChange={(e) => {
-                setAnimalType(e.target.value);
-                setBreed("");
-              }}
-              className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
-            >
-              {ANIMAL_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">السلالة *</label>
+            <label className="mb-1 block text-sm font-medium">التصنيف الفرعي *</label>
             <select
               required
-              value={breed}
-              onChange={(e) => setBreed(e.target.value)}
+              value={subCategory}
+              onChange={(e) => setSubCategory(e.target.value)}
               className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
             >
-              <option value="">اختر السلالة</option>
-              {breedOptions.map((b) => (
-                <option key={b} value={b}>
-                  {b}
+              <option value="">اختر التصنيف</option>
+              {subCategoryOptions.map((s) => (
+                <option key={s} value={s}>
+                  {s}
                 </option>
               ))}
             </select>
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-sm font-medium">العمر</label>
-            <input
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              placeholder="مثال: سنة ونصف"
-              className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">الوزن (كجم)</label>
-            <input
-              type="number"
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-              className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
-            />
-          </div>
-        </div>
+        )}
 
         <div>
           <label className="mb-1 block text-sm font-medium">الوصف *</label>
@@ -222,7 +390,7 @@ function AddAdForm() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
-            placeholder="اكتب وصفًا دقيقًا وصادقًا للحيوان..."
+            placeholder="اكتب وصفًا دقيقًا وصادقًا..."
           />
         </div>
 
@@ -327,16 +495,15 @@ function AddAdForm() {
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium">صور الحيوان *</label>
+          <label className="mb-2 block text-sm font-medium">الصور *</label>
           <ImageUploader images={images} onChange={setImages} />
         </div>
 
         <button
           type="submit"
-          disabled={submitting}
-          className="mt-2 rounded-xl bg-brand-primary py-3 font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+          className="mt-2 rounded-xl bg-brand-primary py-3 font-bold text-white transition hover:brightness-110"
         >
-          {submitting ? "جاري النشر..." : editId ? "حفظ التعديلات" : "نشر الإعلان"}
+          استعراض الإعلان قبل النشر
         </button>
       </form>
     </div>

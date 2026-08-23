@@ -9,10 +9,12 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 
 | الحقل | النوع | ملاحظات |
 |---|---|---|
+| category | `livestock` \| `feed` \| `equipment` \| `services` \| `transport` \| `offers` | |
+| subCategory | string | فارغ لـ livestock، قيمة من `SUB_CATEGORIES` لبقية الأقسام |
 | title, description | string | |
 | price | number | |
 | isNegotiable | boolean | |
-| animalType, breed, age | string | |
+| animalType, breed, age | string | تُملأ فقط عندما category=="livestock" |
 | weight | number \| null | |
 | country, region, city | string | |
 | sellerId, sellerName, sellerType, sellerRating | — | مخزّنة مباشرة على الإعلان (denormalized) |
@@ -22,7 +24,10 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 | status | `active` \| `ended` \| `flagged` \| `deleted` | |
 | featured | boolean | |
 
-**الصلاحيات:** القراءة عامة. الإنشاء لأي مستخدم مسجّل (لنفسه فقط). التعديل/الحذف لصاحب الإعلان أو أي admin/owner.
+**الصلاحيات:** القراءة عامة. الإنشاء لأي مستخدم مسجّل (لنفسه فقط). التعديل (تغيير الحالة،
+التمييز، إلخ) لصاحب الإعلان أو أي admin/owner. **الحذف النهائي (hard delete) حصري
+للـ owner فقط** — "مراجعة الإعلانات الحساسة"؛ الحذف العادي من صاحب الإعلان هو حذف
+ناعم (status → "deleted") عبر التعديل، ويبقى متاحًا للجميع كالمعتاد.
 
 **الدوال:** `createAd`, `updateAd`, `deleteAd`, `hardDeleteAd`, `getAd`, `incrementViews`, `listAds`, `listFeaturedAds`, `listAdsBySeller`, `listSimilarAds`, `listAllAdsAdmin` — في `frontend/src/lib/ads.ts`.
 
@@ -65,6 +70,36 @@ admin/owner. الدوال في `breeds.ts` و`regions.ts`.
 
 مستند واحد بإعدادات الموقع (اسم الموقع، سعر الإعلان المميز، رقم الدعم، وضع
 الصيانة). القراءة عامة، الكتابة لـ **owner فقط**. الدوال في `settings.ts`.
+
+## comments
+
+| الحقل | النوع |
+|---|---|
+| adId, userId, userName, text | string |
+| createdAt | number |
+
+**الصلاحيات:** القراءة عامة. الإنشاء لأي مستخدم مسجّل (باسمه فقط، `userId == auth.uid`).
+الحذف لصاحب التعليق أو admin/owner (يغطي "مراقبة المحتوى" للمشرف). لا يوجد تعديل — يُحذف ويُعاد كتابته.
+
+**الدوال:** `createComment`, `listComments`, `deleteComment` — في `frontend/src/lib/comments.ts`.
+
+## ratings
+
+| الحقل | النوع |
+|---|---|
+| adId, userId | string |
+| value | number (1–5) |
+| createdAt | number |
+
+معرّف المستند دائمًا `${adId}_${userId}` — تقييم واحد فقط لكل مستخدم لكل إعلان (upsert
+عند إعادة التقييم). المتوسط يُحسب من جهة العميل بجمع كل تقييمات الإعلان، ولا يمسّ
+مستند الإعلان نفسه أو ملف المستخدم — تفاديًا لتوسيع صلاحيات الكتابة على مجموعتي
+`ads`/`users` المُحكمتين أصلًا.
+
+**الصلاحيات:** القراءة عامة. الإنشاء/التعديل لصاحب التقييم فقط (`userId == auth.uid`
+ومعرّف المستند مطابق). الحذف لصاحب التقييم أو admin/owner.
+
+**الدوال:** `submitRating`, `getMyRating`, `listRatings`, `getAverageRating` — في `frontend/src/lib/ratings.ts`.
 
 ## المصادقة (Auth)
 

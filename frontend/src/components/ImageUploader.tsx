@@ -77,7 +77,7 @@ export default function ImageUploader({
         onChange={(e) => handleFiles(e.target.files)}
       />
       <p className="mt-2 text-xs text-black/40">
-        حتى {MAX_IMAGES} صور حقيقية وواضحة للحيوان. يتم ضغط الصور تلقائيًا.
+        حتى {MAX_IMAGES} صور حقيقية وواضحة. يتم ضغط الصور تلقائيًا.
       </p>
     </div>
   );

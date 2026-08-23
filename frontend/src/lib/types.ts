@@ -3,9 +3,17 @@ export type SellerType = "individual" | "trader";
 export type AccountType = "individual" | "trader";
 export type UserRole = "user" | "admin" | "owner";
 export type ReportStatus = "open" | "closed";
+export type AdCategory =
+  | "livestock"
+  | "feed"
+  | "equipment"
+  | "services"
+  | "transport"
+  | "offers";
 
 export interface Ad {
   id: string;
+  category: AdCategory;
   title: string;
   description: string;
   price: number;
@@ -14,6 +22,7 @@ export interface Ad {
   breed: string;
   age: string;
   weight: number | null;
+  subCategory: string;
   country: string;
   region: string;
   city: string;
@@ -73,4 +82,21 @@ export interface SiteSettings {
   featuredAdPrice: number;
   supportPhone: string;
   maintenanceMode: boolean;
+}
+
+export interface Comment {
+  id: string;
+  adId: string;
+  userId: string;
+  userName: string;
+  text: string;
+  createdAt: number;
+}
+
+export interface Rating {
+  id: string;
+  adId: string;
+  userId: string;
+  value: number;
+  createdAt: number;
 }

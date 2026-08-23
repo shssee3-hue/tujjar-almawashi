@@ -1,3 +1,37 @@
+import { AdCategory } from "./types";
+
+export const CATEGORIES: { key: AdCategory; label: string; photo: string }[] = [
+  { key: "livestock", label: "المواشي", photo: "/images/animals/sheep.webp" },
+  { key: "feed", label: "أعلاف", photo: "/images/animals/feed.webp" },
+  { key: "equipment", label: "معدات", photo: "/images/animals/equipment.webp" },
+  { key: "services", label: "خدمات", photo: "/images/animals/services.webp" },
+  { key: "transport", label: "نقل مواشي", photo: "/images/animals/transport.webp" },
+  { key: "offers", label: "عروض خاصة", photo: "/images/animals/offers.webp" },
+];
+
+export const CATEGORY_LABELS: Record<AdCategory, string> = {
+  livestock: "المواشي",
+  feed: "أعلاف",
+  equipment: "معدات",
+  services: "خدمات",
+  transport: "نقل مواشي",
+  offers: "عروض خاصة",
+};
+
+export const SUB_CATEGORIES: Record<Exclude<AdCategory, "livestock">, string[]> = {
+  feed: ["برسيم", "شعير", "ذرة علف", "أعلاف مركزة", "تبن"],
+  equipment: ["حظائر", "مضخات مياه", "معدات حلب", "أسيجة ومظلات", "عربات نقل علف"],
+  services: ["خدمات بيطرية", "تحصين وتطعيم", "تدريب وتربية", "حلاقة وتجميل", "استشارات تغذية"],
+  transport: ["نقل داخل المدينة", "نقل بين المدن", "نقل مع عاملين", "نقل مع تأمين"],
+  offers: [
+    "خصومات",
+    "عروض موسمية",
+    "عروض نقل مجاني",
+    "عروض تركيب مجاني",
+    "عروض تجهيز الحظائر",
+  ],
+};
+
 export const ANIMAL_TYPES = [
   "أغنام",
   "ماعز",

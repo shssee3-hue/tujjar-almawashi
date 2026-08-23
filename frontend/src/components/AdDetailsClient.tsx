@@ -8,9 +8,13 @@ import ImageGallery from "@/components/ImageGallery";
 import ReportButton from "@/components/ReportButton";
 import AdCard from "@/components/AdCard";
 import BackButton from "@/components/BackButton";
+import CommentsSection from "@/components/CommentsSection";
+import RatingStars from "@/components/RatingStars";
+import ShareButton from "@/components/ShareButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
+import { CATEGORY_LABELS } from "@/lib/constants";
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat("ar-SA").format(price);
@@ -58,6 +62,7 @@ export default function AdDetailsClient() {
 
   const isOwner = firebaseUser?.uid === ad.sellerId;
   const mapQuery = encodeURIComponent(`${ad.city} ${ad.region} ${ad.country}`);
+  const category = ad.category || "livestock";
 
   async function handleDelete() {
     if (!confirm("هل أنت متأكد من حذف هذا الإعلان؟")) return;
@@ -82,9 +87,15 @@ export default function AdDetailsClient() {
                 </span>
               )}
             </div>
-            <p className="mt-1 text-sm text-black/50">
-              {ad.city}، {ad.region} — {ad.country}
-            </p>
+            <div className="mt-1 flex items-center gap-2 text-sm text-black/50">
+              <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs font-bold text-black/60">
+                {CATEGORY_LABELS[category]}
+                {ad.subCategory && ` · ${ad.subCategory}`}
+              </span>
+              <span>
+                {ad.city}، {ad.region} — {ad.country}
+              </span>
+            </div>
 
             <div className="mt-4 flex items-center gap-4">
               <span className="text-3xl font-extrabold text-brand-primary">
@@ -97,23 +108,30 @@ export default function AdDetailsClient() {
               )}
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3 rounded-2xl border border-black/5 bg-white p-4 text-sm sm:grid-cols-4">
-              <div>
-                <p className="text-black/40">النوع</p>
-                <p className="font-bold">{ad.animalType}</p>
+            {category === "livestock" && (
+              <div className="mt-6 grid grid-cols-2 gap-3 rounded-2xl border border-black/5 bg-white p-4 text-sm sm:grid-cols-4">
+                <div>
+                  <p className="text-black/40">النوع</p>
+                  <p className="font-bold">{ad.animalType}</p>
+                </div>
+                <div>
+                  <p className="text-black/40">السلالة</p>
+                  <p className="font-bold">{ad.breed}</p>
+                </div>
+                <div>
+                  <p className="text-black/40">العمر</p>
+                  <p className="font-bold">{ad.age}</p>
+                </div>
+                <div>
+                  <p className="text-black/40">الوزن</p>
+                  <p className="font-bold">{ad.weight ? `${ad.weight} كجم` : "—"}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-black/40">السلالة</p>
-                <p className="font-bold">{ad.breed}</p>
-              </div>
-              <div>
-                <p className="text-black/40">العمر</p>
-                <p className="font-bold">{ad.age}</p>
-              </div>
-              <div>
-                <p className="text-black/40">الوزن</p>
-                <p className="font-bold">{ad.weight ? `${ad.weight} كجم` : "—"}</p>
-              </div>
+            )}
+
+            <div className="mt-6 flex items-center gap-4">
+              <RatingStars adId={ad.id} />
+              <ShareButton title={ad.title} />
             </div>
 
             <div className="mt-6">
@@ -135,6 +153,8 @@ export default function AdDetailsClient() {
                 />
               </div>
             </div>
+
+            <CommentsSection adId={ad.id} />
           </div>
         </div>
 

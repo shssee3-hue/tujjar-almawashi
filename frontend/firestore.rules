@@ -58,8 +58,29 @@ service cloud.firestore {
         || (isSignedIn()
             && resource.data.sellerId == request.auth.uid
             && request.resource.data.sellerId == resource.data.sellerId);
+      // Permanent (hard) deletion is an owner-only "sensitive review" action;
+      // everyone else removes an ad via update (status -> "deleted"), which
+      // stays reversible and is already covered by the update rule above.
+      allow delete: if isSystemOwner();
+    }
+
+    // comments/{commentId} — per-ad discussion
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
       allow delete: if isAdmin()
-        || (isSignedIn() && resource.data.sellerId == request.auth.uid);
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    // ratings/{adId_userId} — one rating per user per ad, id enforces that
+    match /ratings/{ratingId} {
+      allow read: if true;
+      allow create, update: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && ratingId == request.resource.data.adId + "_" + request.auth.uid;
+      allow delete: if isAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
     // reports/{reportId}
