@@ -1,18 +1,23 @@
 import { AdCategory } from "./types";
 
+// "عروض خاصة" (offers) was retired as a browsable/creatable section — it is
+// intentionally absent here so it no longer appears on the homepage, in the
+// add-ad category picker, or in the browse-page filter pills. Old ads with
+// category=="offers" are untouched in Firestore and still render correctly
+// wherever a specific ad is looked up directly (CATEGORY_LABELS below still
+// has an entry for it).
 export const CATEGORIES: { key: AdCategory; label: string; photo: string }[] = [
   { key: "livestock", label: "المواشي", photo: "/images/animals/sheep.webp" },
   { key: "feed", label: "أعلاف", photo: "/images/animals/feed.webp" },
-  { key: "equipment", label: "معدات", photo: "/images/animals/equipment.webp" },
+  { key: "equipment", label: "شبوك ومعالف", photo: "/images/animals/equipment.webp" },
   { key: "services", label: "خدمات", photo: "/images/animals/services.webp" },
   { key: "transport", label: "نقل مواشي", photo: "/images/animals/transport.webp" },
-  { key: "offers", label: "عروض خاصة", photo: "/images/animals/offers.webp" },
 ];
 
 export const CATEGORY_LABELS: Record<AdCategory, string> = {
   livestock: "المواشي",
   feed: "أعلاف",
-  equipment: "معدات",
+  equipment: "شبوك ومعالف",
   services: "خدمات",
   transport: "نقل مواشي",
   offers: "عروض خاصة",

@@ -9,6 +9,8 @@ const DEFAULTS: SiteSettings = {
   featuredAdPrice: 50,
   supportPhone: "0500000000",
   maintenanceMode: false,
+  oathText:
+    "أقسم بالله العظيم أنني ملزم بنسبة الموقع 1.5% من قيمة البيع وتبقى بذمتي حتى أدفعها للموقع.",
 };
 
 export async function getSiteSettings(): Promise<SiteSettings> {

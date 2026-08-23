@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAuthGate } from "@/lib/useAuthGate";
 import { createAd, getAd, updateAd } from "@/lib/ads";
+import { getSiteSettings } from "@/lib/settings";
 import ImageUploader from "@/components/ImageUploader";
 import BackButton from "@/components/BackButton";
 import AuthGateModal from "@/components/AuthGateModal";
@@ -53,6 +54,16 @@ function AddAdForm() {
   const [images, setImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [loadingAd, setLoadingAd] = useState(!!editId);
+  const [oathAccepted, setOathAccepted] = useState(false);
+  const [oathText, setOathText] = useState(
+    "أقسم بالله العظيم أنني ملزم بنسبة الموقع 1.5% من قيمة البيع وتبقى بذمتي حتى أدفعها للموقع."
+  );
+
+  useEffect(() => {
+    getSiteSettings().then((s) => {
+      if (s.oathText) setOathText(s.oathText);
+    });
+  }, []);
 
   useEffect(() => {
     if (profile) {
@@ -115,6 +126,10 @@ function AddAdForm() {
 
   async function handlePublish() {
     if (!firebaseUser || !profile) return;
+    if (!oathAccepted) {
+      toast.error("يجب الموافقة على الإقرار الإلزامي قبل نشر الإعلان");
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = {
@@ -138,6 +153,7 @@ function AddAdForm() {
         phoneNumber,
         whatsapp,
         images,
+        oathAccepted: true,
       };
 
       if (editId) {
@@ -175,6 +191,14 @@ function AddAdForm() {
   const breedOptions = DEFAULT_BREEDS[animalType] || [];
   const regionOptions = DEFAULT_REGIONS[country] || [];
   const subCategoryOptions = isLivestock ? [] : SUB_CATEGORIES[category];
+  // A retired category (currently only "offers") is never offered for a new
+  // ad, but if a seller is editing one of their existing ads in that
+  // category, it must still appear as the selected option — otherwise the
+  // browser silently falls back to the first option and re-saving would
+  // corrupt the ad's category.
+  const categoryOptions = CATEGORIES.some((c) => c.key === category)
+    ? CATEGORIES
+    : [...CATEGORIES, { key: category, label: CATEGORY_LABELS[category], photo: "" }];
 
   if (step === "preview") {
     return (
@@ -245,7 +269,17 @@ function AddAdForm() {
           </div>
         </div>
 
-        <div className="mt-6 flex gap-3">
+        <label className="mt-6 flex items-start gap-3 rounded-xl border border-black/10 bg-brand-bg-light p-4 text-sm leading-relaxed">
+          <input
+            type="checkbox"
+            checked={oathAccepted}
+            onChange={(e) => setOathAccepted(e.target.checked)}
+            className="mt-0.5 h-4 w-4 flex-shrink-0"
+          />
+          <span className="font-medium text-brand-bg-dark">{oathText}</span>
+        </label>
+
+        <div className="mt-4 flex gap-3">
           <button
             onClick={() => setStep("form")}
             className="flex-1 rounded-xl border border-black/10 py-3 font-bold text-black/60"
@@ -285,7 +319,7 @@ function AddAdForm() {
             }}
             className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
           >
-            {CATEGORIES.map((c) => (
+            {categoryOptions.map((c) => (
               <option key={c.key} value={c.key}>
                 {c.label}
               </option>

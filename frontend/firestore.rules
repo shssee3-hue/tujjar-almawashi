@@ -51,9 +51,14 @@ service cloud.firestore {
     // ads/{adId}
     match /ads/{adId} {
       allow read: if true;
+      // oathAccepted enforces the mandatory commission-acknowledgment checkbox
+      // at the database layer, not just in the UI — a direct API/SDK call
+      // that omits it (or sets it to anything but true) is rejected here
+      // regardless of what the client claims to have shown the user.
       allow create: if isSignedIn()
         && request.resource.data.sellerId == request.auth.uid
-        && request.resource.data.status == "active";
+        && request.resource.data.status == "active"
+        && request.resource.data.oathAccepted == true;
       allow update: if isAdmin()
         || (isSignedIn()
             && resource.data.sellerId == request.auth.uid

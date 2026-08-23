@@ -39,6 +39,7 @@ export interface Ad {
   reportsCount: number;
   status: AdStatus;
   featured?: boolean;
+  oathAccepted: boolean;
 }
 
 export interface UserProfile {
@@ -82,6 +83,7 @@ export interface SiteSettings {
   featuredAdPrice: number;
   supportPhone: string;
   maintenanceMode: boolean;
+  oathText: string;
 }
 
 export interface Comment {

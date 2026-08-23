@@ -15,6 +15,7 @@ const NAV = [
   { href: "/dashboard/regions", label: "المناطق والمدن", icon: "🗺️" },
   { href: "/dashboard/admins", label: "المشرفون", icon: "🛡️", ownerOnly: true },
   { href: "/dashboard/settings", label: "إعدادات الموقع", icon: "⚙️", ownerOnly: true },
+  { href: "/dashboard/oath-text", label: "نص الإقرار الإلزامي", icon: "📜", ownerOnly: true },
 ];
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
