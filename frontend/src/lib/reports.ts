@@ -1,6 +1,7 @@
 import {
   collection,
   addDoc,
+  deleteDoc,
   doc,
   updateDoc,
   getDocs,
@@ -36,4 +37,8 @@ export async function listRecentReportsAdmin(max = 20): Promise<Report[]> {
 
 export async function closeReport(id: string) {
   await updateDoc(doc(db, "reports", id), { status: "closed" });
+}
+
+export async function deleteReport(id: string) {
+  await deleteDoc(doc(db, "reports", id));
 }

@@ -130,7 +130,7 @@ export default function AdDetailsClient() {
             )}
 
             <div className="mt-6 flex items-center gap-4">
-              <RatingStars adId={ad.id} />
+              <RatingStars adId={ad.id} sellerId={ad.sellerId} />
               <ShareButton title={ad.title} />
             </div>
 

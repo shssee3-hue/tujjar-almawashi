@@ -4,9 +4,22 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { listAllAdsAdmin, updateAd, hardDeleteAd } from "@/lib/ads";
-import { Ad, AdStatus } from "@/lib/types";
+import { listRecentReportsAdmin } from "@/lib/reports";
+import { Ad, AdStatus, Report } from "@/lib/types";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
+
+type ReportBadge = { label: string; color: string } | null;
+
+function reportBadgeFor(ad: Ad, reportsByAd: Record<string, Report[]>): ReportBadge {
+  if (ad.status === "flagged") return { label: "مخالف", color: "bg-red-100 text-red-600" };
+  const reports = reportsByAd[ad.id] || [];
+  if (reports.length === 0) return null;
+  if (reports.some((r) => r.status === "open")) {
+    return { label: "مفتوح", color: "bg-orange-100 text-orange-600" };
+  }
+  return { label: "مغلق", color: "bg-black/10 text-black/50" };
+}
 
 const STATUS_LABEL: Record<AdStatus, string> = {
   active: "نشط",
@@ -25,13 +38,21 @@ const STATUS_COLOR: Record<AdStatus, string> = {
 export default function AdminAdsPage() {
   const { isSystemOwner } = useAuth();
   const [ads, setAds] = useState<Ad[]>([]);
+  const [reportsByAd, setReportsByAd] = useState<Record<string, Report[]>>({});
   const [filter, setFilter] = useState<AdStatus | "all">("all");
   const [loading, setLoading] = useState(true);
 
   function refresh() {
     setLoading(true);
-    listAllAdsAdmin()
-      .then(setAds)
+    Promise.all([listAllAdsAdmin(), listRecentReportsAdmin(500)])
+      .then(([adsRes, reportsRes]) => {
+        setAds(adsRes);
+        const grouped: Record<string, Report[]> = {};
+        for (const r of reportsRes) {
+          (grouped[r.adId] ||= []).push(r);
+        }
+        setReportsByAd(grouped);
+      })
       .finally(() => setLoading(false));
   }
 
@@ -89,7 +110,7 @@ export default function AdminAdsPage() {
                 <th className="px-4 py-3">السعر</th>
                 <th className="px-4 py-3">الحالة</th>
                 <th className="px-4 py-3">مميز</th>
-                <th className="px-4 py-3">بلاغات</th>
+                <th className="px-4 py-3">حالة البلاغ</th>
                 <th className="px-4 py-3">إجراءات</th>
               </tr>
             </thead>
@@ -114,7 +135,18 @@ export default function AdminAdsPage() {
                       {ad.featured ? "⭐" : "☆"}
                     </button>
                   </td>
-                  <td className="px-4 py-3">{ad.reportsCount}</td>
+                  <td className="px-4 py-3">
+                    {(() => {
+                      const badge = reportBadgeFor(ad, reportsByAd);
+                      return badge ? (
+                        <span className={`rounded-full px-2 py-1 text-xs font-bold ${badge.color}`}>
+                          {badge.label} ({ad.reportsCount})
+                        </span>
+                      ) : (
+                        <span className="text-black/30">—</span>
+                      );
+                    })()}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
                       {ad.status !== "flagged" && (

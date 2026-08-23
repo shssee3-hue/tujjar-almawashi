@@ -20,7 +20,7 @@ export default function ReportButton({ adId, adTitle }: { adId: string; adTitle:
     setLoading(true);
     try {
       await createReport({ adId, adTitle, reporterId: firebaseUser.uid, reason });
-      toast.success("تم إرسال البلاغ، شكرًا لك");
+      toast.success("تم البلاغ");
       setOpen(false);
     } catch {
       toast.error("تعذر إرسال البلاغ");

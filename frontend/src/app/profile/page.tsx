@@ -7,7 +7,8 @@ import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { listAdsBySeller, deleteAd } from "@/lib/ads";
 import { updateUserProfile } from "@/lib/users";
-import { Ad } from "@/lib/types";
+import { listCommentsForAds } from "@/lib/comments";
+import { Ad, Comment } from "@/lib/types";
 import AdCard from "@/components/AdCard";
 import BackButton from "@/components/BackButton";
 
@@ -24,6 +25,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { firebaseUser, profile, loading: authLoading } = useAuth();
   const [ads, setAds] = useState<Ad[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [tab, setTab] = useState<TabKey>("active");
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
@@ -46,6 +48,16 @@ export default function ProfilePage() {
     if (!firebaseUser) return;
     listAdsBySeller(firebaseUser.uid).then(setAds);
   }, [firebaseUser]);
+
+  useEffect(() => {
+    if (ads.length === 0) {
+      setComments([]);
+      return;
+    }
+    listCommentsForAds(ads.map((a) => a.id)).then(setComments);
+  }, [ads]);
+
+  const adTitleById = Object.fromEntries(ads.map((a) => [a.id, a.title]));
 
   if (authLoading || !profile) {
     return <p className="py-24 text-center text-black/40">جاري التحميل...</p>;
@@ -186,6 +198,35 @@ export default function ProfilePage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {comments.length > 0 && (
+        <div className="mt-10">
+          <h2 className="mb-4 text-lg font-bold text-brand-bg-dark">
+            الردود على إعلاناتك ({comments.length})
+          </h2>
+          <div className="flex flex-col gap-3">
+            {comments.map((c) => (
+              <Link
+                key={c.id}
+                href={`/ad?id=${c.adId}`}
+                className="flex flex-col gap-1 rounded-2xl border border-black/5 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-bold text-brand-primary">
+                    {adTitleById[c.adId] || "إعلان"}
+                  </span>
+                  <span className="text-xs text-black/30">
+                    {new Date(c.createdAt).toLocaleString("ar-SA")}
+                  </span>
+                </div>
+                <p className="text-sm text-black/70">
+                  <span className="font-bold">{c.userName}</span>: {c.text}
+                </p>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </div>

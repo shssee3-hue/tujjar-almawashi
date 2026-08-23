@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { listRecentReportsAdmin, closeReport } from "@/lib/reports";
+import { listRecentReportsAdmin, closeReport, deleteReport } from "@/lib/reports";
 import { Report } from "@/lib/types";
 
 export default function AdminReportsPage() {
@@ -23,6 +23,13 @@ export default function AdminReportsPage() {
     await closeReport(id);
     setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status: "closed" } : r)));
     toast.success("تم إغلاق البلاغ");
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("حذف هذا البلاغ نهائيًا؟ لا يمكن التراجع.")) return;
+    await deleteReport(id);
+    setReports((prev) => prev.filter((r) => r.id !== id));
+    toast.success("تم حذف البلاغ");
   }
 
   return (
@@ -80,6 +87,14 @@ export default function AdminReportsPage() {
                     className="text-sm font-bold text-brand-primary"
                   >
                     إغلاق البلاغ
+                  </button>
+                )}
+                {r.status === "closed" && (
+                  <button
+                    onClick={() => handleDelete(r.id)}
+                    className="text-sm font-bold text-red-600"
+                  >
+                    حذف البلاغ
                   </button>
                 )}
               </div>

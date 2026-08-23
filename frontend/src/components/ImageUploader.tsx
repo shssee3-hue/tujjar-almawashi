@@ -14,6 +14,7 @@ export default function ImageUploader({
   onChange: (images: string[]) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleFiles(fileList: FileList | null) {
@@ -57,17 +58,36 @@ export default function ImageUploader({
         ))}
 
         {images.length < MAX_IMAGES && (
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={loading}
-            className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-black/20 text-black/40 hover:border-brand-secondary hover:text-brand-primary"
-          >
-            <span className="text-2xl">{loading ? "…" : "+"}</span>
-            <span className="text-xs">إضافة صورة</span>
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={loading}
+              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-black/20 text-black/40 hover:border-brand-secondary hover:text-brand-primary"
+            >
+              <span className="text-2xl">{loading ? "…" : "📷"}</span>
+              <span className="text-xs">التقاط صورة</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={loading}
+              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-black/20 text-black/40 hover:border-brand-secondary hover:text-brand-primary"
+            >
+              <span className="text-2xl">{loading ? "…" : "+"}</span>
+              <span className="text-xs">إضافة صورة</span>
+            </button>
+          </>
         )}
       </div>
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        hidden
+        onChange={(e) => handleFiles(e.target.files)}
+      />
       <input
         ref={inputRef}
         type="file"
