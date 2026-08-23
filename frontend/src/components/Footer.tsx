@@ -16,21 +16,16 @@ export default function Footer() {
         </div>
 
         <div>
-          <h3 className="mb-3 font-bold text-white">روابط سريعة</h3>
+          <h3 className="mb-3 font-bold text-white">روابط الموقع</h3>
           <ul className="space-y-2 text-sm text-white/60">
             <li>
-              <Link href="/ads" className="hover:text-brand-secondary">
-                جميع الإعلانات
+              <Link href="/privacy" className="hover:text-brand-secondary">
+                سياسة الخصوصية
               </Link>
             </li>
             <li>
-              <Link href="/add-ad" className="hover:text-brand-secondary">
-                إضافة إعلان
-              </Link>
-            </li>
-            <li>
-              <Link href="/search" className="hover:text-brand-secondary">
-                بحث متقدم
+              <Link href="/about" className="hover:text-brand-secondary">
+                من نحن
               </Link>
             </li>
             <li>

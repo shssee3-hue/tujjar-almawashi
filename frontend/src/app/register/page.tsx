@@ -45,7 +45,7 @@ export default function RegisterPage() {
         </h1>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="mb-1 block text-sm font-medium">الاسم الكامل</label>
+            <label className="mb-1 block text-sm font-medium">الاسم</label>
             <input
               required
               value={name}
