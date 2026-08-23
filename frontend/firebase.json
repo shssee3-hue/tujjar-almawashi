@@ -7,6 +7,14 @@
     "public": "out",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "cleanUrls": true,
-    "trailingSlash": false
+    "trailingSlash": false,
+    "headers": [
+      {
+        "source": "/images/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, no-cache, must-revalidate" }
+        ]
+      }
+    ]
   }
 }
