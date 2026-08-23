@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { listRecentReportsAdmin, closeReport, deleteReport } from "@/lib/reports";
 import { Report } from "@/lib/types";
 
 export default function AdminReportsPage() {
+  const router = useRouter();
   const [reports, setReports] = useState<Report[]>([]);
   const [filter, setFilter] = useState<"all" | "open" | "closed">("all");
   const [loading, setLoading] = useState(true);
@@ -62,10 +64,21 @@ export default function AdminReportsPage() {
           {filtered.map((r) => (
             <div
               key={r.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black/5 bg-white p-4 shadow-sm"
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push(`/ad?id=${r.adId}`)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") router.push(`/ad?id=${r.adId}`);
+              }}
+              title="اضغط للانتقال إلى الإعلان"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black/5 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
             >
               <div>
-                <Link href={`/ad?id=${r.adId}`} className="font-bold text-brand-primary">
+                <Link
+                  href={`/ad?id=${r.adId}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-bold text-brand-primary hover:underline"
+                >
                   {r.adTitle || r.adId}
                 </Link>
                 <p className="text-sm text-black/50">{r.reason}</p>
@@ -73,7 +86,7 @@ export default function AdminReportsPage() {
                   {new Date(r.createdAt).toLocaleString("ar-SA")}
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-bold ${
                     r.status === "open" ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"

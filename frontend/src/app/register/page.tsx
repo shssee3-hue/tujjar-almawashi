@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { registerUser, authErrorMessage } from "@/lib/auth";
 import { AccountType } from "@/lib/types";
+import { useAuth } from "@/contexts/AuthContext";
 import BackButton from "@/components/BackButton";
 import PasswordInput from "@/components/PasswordInput";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { firebaseUser, loading: authLoading } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -19,6 +21,16 @@ export default function RegisterPage() {
   const [accountType, setAccountType] = useState<AccountType>("individual");
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && firebaseUser) {
+      router.replace("/profile");
+    }
+  }, [authLoading, firebaseUser, router]);
+
+  if (authLoading || firebaseUser) {
+    return <p className="py-24 text-center text-black/40">جاري التحميل...</p>;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

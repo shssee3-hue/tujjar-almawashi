@@ -8,6 +8,7 @@ import { ANIMAL_TYPES, CATEGORIES } from "@/lib/constants";
 import { listFeaturedAds } from "@/lib/ads";
 import { Ad } from "@/lib/types";
 import AdCard from "@/components/AdCard";
+import { useAuth } from "@/contexts/AuthContext";
 
 const CATEGORY_PHOTOS: Record<string, string> = {
   "أغنام": "/images/animals/sheep.webp",
@@ -20,6 +21,7 @@ const CATEGORY_PHOTOS: Record<string, string> = {
 
 export default function HomePage() {
   const router = useRouter();
+  const { firebaseUser } = useAuth();
   const [q, setQ] = useState("");
   const [featured, setFeatured] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,12 +90,21 @@ export default function HomePage() {
             >
               تصفح الإعلانات
             </Link>
-            <Link
-              href="/register"
-              className="rounded-full border border-white/40 px-6 py-3 font-bold transition hover:bg-white/10"
-            >
-              إنشاء حساب
-            </Link>
+            {firebaseUser ? (
+              <Link
+                href="/add-ad"
+                className="rounded-full border border-white/40 px-6 py-3 font-bold transition hover:bg-white/10"
+              >
+                + إضافة إعلان
+              </Link>
+            ) : (
+              <Link
+                href="/register"
+                className="rounded-full border border-white/40 px-6 py-3 font-bold transition hover:bg-white/10"
+              >
+                إنشاء حساب
+              </Link>
+            )}
           </div>
         </div>
       </section>
