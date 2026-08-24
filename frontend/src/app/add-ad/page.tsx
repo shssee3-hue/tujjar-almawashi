@@ -205,6 +205,13 @@ function AddAdForm() {
   const categoryOptions = CATEGORIES.some((c) => c.key === category)
     ? CATEGORIES
     : [...CATEGORIES, { key: category, label: CATEGORY_LABELS[category], photo: "" }];
+  // Same defensive pattern for animalType: old ads still say "أغنام" (now
+  // renamed to "الضأن" everywhere new ads are concerned) — inject it back in
+  // only when editing one of those, so the select doesn't silently jump to
+  // the first option and corrupt the ad's animal type on save.
+  const animalTypeOptions = ANIMAL_TYPES.includes(animalType)
+    ? ANIMAL_TYPES
+    : [...ANIMAL_TYPES, animalType];
 
   if (step === "preview") {
     return (
@@ -365,7 +372,7 @@ function AddAdForm() {
                   }}
                   className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
                 >
-                  {ANIMAL_TYPES.map((t) => (
+                  {animalTypeOptions.map((t) => (
                     <option key={t} value={t}>
                       {t}
                     </option>

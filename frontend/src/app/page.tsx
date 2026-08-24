@@ -11,7 +11,7 @@ import AdCard from "@/components/AdCard";
 import { useAuth } from "@/contexts/AuthContext";
 
 const CATEGORY_PHOTOS: Record<string, string> = {
-  "أغنام": "/images/animals/sheep.webp",
+  "الضأن": "/images/animals/sheep.webp",
   "ماعز": "/images/animals/goat.webp",
   "إبل": "/images/animals/camel.webp",
   "أبقار": "/images/animals/cow.webp",

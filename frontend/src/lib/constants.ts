@@ -37,8 +37,13 @@ export const SUB_CATEGORIES: Record<Exclude<AdCategory, "livestock">, string[]> 
   ],
 };
 
+// "الضأن" replaces the old "أغنام" label — ads created before this rename
+// still have animalType=="أغنام" stored in Firestore (never rewritten, per
+// this project's policy of not mutating historical data on a rename), so
+// DEFAULT_BREEDS below keeps "أغنام" as an alias pointing at the same breed
+// list purely so an old ad's breed dropdown doesn't come up empty on edit.
 export const ANIMAL_TYPES = [
-  "أغنام",
+  "الضأن",
   "ماعز",
   "إبل",
   "أبقار",
@@ -46,8 +51,11 @@ export const ANIMAL_TYPES = [
   "دواجن",
 ];
 
+const SHEEP_BREEDS = ["نجدي", "حري", "نعيمي", "برقاء", "سواكني"];
+
 export const DEFAULT_BREEDS: Record<string, string[]> = {
-  "أغنام": ["نجدي", "حري", "نعيمي", "برقاء", "سواكني"],
+  "الضأن": SHEEP_BREEDS,
+  "أغنام": SHEEP_BREEDS,
   "ماعز": ["عارضي", "شامي", "جبلي"],
   "إبل": ["مجاهيم", "صفر", "حمر", "شعل"],
   "أبقار": ["هولشتاين", "بلدي", "أنجوس"],
