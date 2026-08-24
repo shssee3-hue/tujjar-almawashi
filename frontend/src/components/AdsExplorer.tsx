@@ -18,13 +18,7 @@ import {
 
 const PAGE_SIZE = 12;
 
-export default function AdsExplorer({
-  title,
-  showAdvanced = false,
-}: {
-  title: string;
-  showAdvanced?: boolean;
-}) {
+export default function AdsExplorer({ title }: { title: string }) {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -36,8 +30,6 @@ export default function AdsExplorer({
   const [breed, setBreed] = useState(params.get("breed") || "");
   const [region, setRegion] = useState(params.get("region") || "");
   const [city, setCity] = useState(params.get("city") || "");
-  const [minPrice, setMinPrice] = useState(params.get("minPrice") || "");
-  const [maxPrice, setMaxPrice] = useState(params.get("maxPrice") || "");
   const [q, setQ] = useState(params.get("q") || "");
   const [sort, setSort] = useState(params.get("sort") || "newest");
 
@@ -55,12 +47,10 @@ export default function AdsExplorer({
       breed: breed || undefined,
       region: region || undefined,
       city: city || undefined,
-      minPrice: minPrice ? Number(minPrice) : undefined,
-      maxPrice: maxPrice ? Number(maxPrice) : undefined,
       q: q || undefined,
       sort,
     }),
-    [category, subCategory, animalType, breed, region, city, minPrice, maxPrice, q, sort]
+    [category, subCategory, animalType, breed, region, city, q, sort]
   );
 
   useEffect(() => {
@@ -89,8 +79,6 @@ export default function AdsExplorer({
     if (breed) sp.set("breed", breed);
     if (region) sp.set("region", region);
     if (city) sp.set("city", city);
-    if (minPrice) sp.set("minPrice", minPrice);
-    if (maxPrice) sp.set("maxPrice", maxPrice);
     if (q) sp.set("q", q);
     if (sort !== "newest") sp.set("sort", sort);
     router.push(`?${sp.toString()}`);
@@ -103,8 +91,6 @@ export default function AdsExplorer({
     setBreed("");
     setRegion("");
     setCity("");
-    setMinPrice("");
-    setMaxPrice("");
     setQ("");
     setSort("newest");
     router.push("?");
@@ -242,29 +228,6 @@ export default function AdsExplorer({
                 className="w-full rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-secondary"
               />
             </div>
-
-            {showAdvanced && (
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="mb-1 block font-medium">أقل سعر</label>
-                  <input
-                    type="number"
-                    value={minPrice}
-                    onChange={(e) => setMinPrice(e.target.value)}
-                    className="w-full rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-secondary"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block font-medium">أعلى سعر</label>
-                  <input
-                    type="number"
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(e.target.value)}
-                    className="w-full rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-secondary"
-                  />
-                </div>
-              </div>
-            )}
 
             <div className="flex gap-2 pt-2">
               <button

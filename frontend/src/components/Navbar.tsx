@@ -8,7 +8,6 @@ import { useAuth } from "@/contexts/AuthContext";
 const links = [
   { href: "/", label: "الرئيسية" },
   { href: "/ads", label: "الإعلانات" },
-  { href: "/search", label: "بحث متقدم" },
 ];
 
 export default function Navbar() {

@@ -59,8 +59,8 @@ Storage، لتفادي الحاجة لتفعيل خطة Blaze (الدفع بحس
 ```
 ┌─────────────────────────────────────────────┐
 │                  Next.js (static)             │
-│  Pages: / /ads /ad /add-ad /search /profile   │
-│         /login /register /terms /dashboard/*  │
+│  Pages: / /ads /ad /add-ad /profile /login    │
+│  /register /terms /privacy /about /dashboard/* │
 └───────────────┬───────────────────────────────┘
                 │  Firebase JS SDK
                 ▼

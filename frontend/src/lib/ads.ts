@@ -24,8 +24,6 @@ export interface AdFilters {
   breed?: string;
   region?: string;
   city?: string;
-  minPrice?: number;
-  maxPrice?: number;
   sort?: string;
   q?: string;
 }
@@ -103,8 +101,6 @@ export async function listAds(filters: AdFilters = {}, max = 300): Promise<Ad[]>
   if (filters.animalType) ads = ads.filter((a) => a.animalType === filters.animalType);
   if (filters.breed) ads = ads.filter((a) => a.breed === filters.breed);
   if (filters.region) ads = ads.filter((a) => a.region === filters.region);
-  if (filters.minPrice !== undefined) ads = ads.filter((a) => a.price >= filters.minPrice!);
-  if (filters.maxPrice !== undefined) ads = ads.filter((a) => a.price <= filters.maxPrice!);
   if (filters.city) {
     const needleCity = filters.city.trim().toLowerCase();
     ads = ads.filter((a) => a.city.toLowerCase().includes(needleCity));
