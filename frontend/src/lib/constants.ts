@@ -63,6 +63,22 @@ export const DEFAULT_BREEDS: Record<string, string[]> = {
   "دواجن": ["بلدي", "بياض", "تسمين"],
 };
 
+// The flat, single-level list of "sections" used by the homepage search box
+// and the ads-page filter bar: the 6 livestock animal types plus the 4
+// non-livestock categories, all at the same depth. Picking one is exactly
+// equivalent to clicking its homepage tile — it's what lets a single
+// "section" field resolve unambiguously into either an animalType filter
+// (with breed as its dependent field) or a category filter (with
+// subCategory as its dependent field).
+export const SECTION_OPTIONS: { value: string; label: string; isAnimalType: boolean }[] = [
+  ...ANIMAL_TYPES.map((t) => ({ value: t, label: t, isAnimalType: true })),
+  ...CATEGORIES.filter((c) => c.key !== "livestock").map((c) => ({
+    value: c.key,
+    label: c.label,
+    isAnimalType: false,
+  })),
+];
+
 export const COUNTRIES = [
   "السعودية",
   "الإمارات",

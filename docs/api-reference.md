@@ -96,11 +96,17 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 
 **الدوال:** `createReport`, `listRecentReportsAdmin`, `closeReport` — في `frontend/src/lib/reports.ts`.
 
-## breeds / regions
+## breeds / regions / additionalServices
 
-بيانات مرجعية (سلالات/مناطق مخصصة يضيفها المشرف بالإضافة للقيم الافتراضية
-المُدمجة في `frontend/src/lib/constants.ts`). القراءة عامة، الكتابة لـ
-admin/owner. الدوال في `breeds.ts` و`regions.ts`.
+بيانات مرجعية (سلالات/مناطق/خدمات إضافية مخصصة يضيفها المشرف بالإضافة للقيم
+الافتراضية المُدمجة في `frontend/src/lib/constants.ts`). القراءة عامة، الكتابة
+لـ admin/owner. الدوال في `breeds.ts`، `regions.ts`، و`services.ts`.
+
+`additionalServices` هو نظير `breeds` لكن للأقسام الأربعة غير المتعلقة
+بالمواشي (تصنيف فرعي بدل نوع حيوان) — يُدار من `/dashboard/services`. **كلا
+المجموعتين مقروءتان ديناميكيًا** من `AdsExplorer` (شريط البحث في `/ads`)
+ونموذج `add-ad`، لا فقط من صفحة الإدارة نفسها — أي إضافة يجريها المشرف تظهر
+فورًا في قوائم "المسمى/السلالة" لكل مستخدم دون الحاجة لإعادة نشر الموقع.
 
 ## settings/site
 

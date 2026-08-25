@@ -80,6 +80,15 @@ export interface RegionCity {
   city: string;
 }
 
+// Admin-managed sub-categories ("services") for the four non-livestock
+// sections — the equivalent of Breed, but for AdCategory instead of
+// animalType.
+export interface AdditionalService {
+  id: string;
+  category: Exclude<AdCategory, "livestock" | "offers">;
+  name: string;
+}
+
 export interface SiteSettings {
   siteName: string;
   featuredAdPrice: number;

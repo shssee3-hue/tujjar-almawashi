@@ -164,6 +164,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // additionalServices/{serviceId} — admin-managed sub-categories for the
+    // four non-livestock sections, public read (same pattern as breeds)
+    match /additionalServices/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // settings/site — single site-wide settings document
     match /settings/{docId} {
       allow read: if true;

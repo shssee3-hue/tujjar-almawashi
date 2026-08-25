@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ANIMAL_TYPES, CATEGORIES, DEFAULT_REGIONS } from "@/lib/constants";
+import { ANIMAL_TYPES, CATEGORIES, DEFAULT_REGIONS, SECTION_OPTIONS } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
 
 const CATEGORY_PHOTOS: Record<string, string> = {
@@ -27,7 +27,8 @@ export default function HomePage() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     const sp = new URLSearchParams();
-    if (section) sp.set("category", section);
+    const opt = SECTION_OPTIONS.find((o) => o.value === section);
+    if (opt) sp.set(opt.isAnimalType ? "animalType" : "category", opt.value);
     if (region) sp.set("region", region);
     const qs = sp.toString();
     router.push(qs ? `/ads?${qs}` : "/ads");
@@ -62,24 +63,24 @@ export default function HomePage() {
 
           <form
             onSubmit={handleSearch}
-            className="mx-auto mt-8 flex max-w-xl flex-col gap-2 overflow-hidden rounded-2xl bg-white p-2 shadow-lg sm:flex-row sm:rounded-full sm:p-1.5"
+            className="mx-auto mt-8 flex max-w-xl flex-nowrap items-center gap-1 rounded-full bg-white p-1 shadow-lg sm:gap-1.5 sm:p-1.5"
           >
             <select
               value={section}
               onChange={(e) => setSection(e.target.value)}
-              className="flex-1 rounded-xl bg-brand-bg-light px-4 py-2.5 text-brand-bg-dark outline-none sm:rounded-full"
+              className="min-w-0 flex-1 rounded-full bg-brand-bg-light px-2 py-2 text-xs text-brand-bg-dark outline-none sm:px-4 sm:text-base"
             >
-              <option value="">القسم أو الخدمة</option>
-              {CATEGORIES.map((c) => (
-                <option key={c.key} value={c.key}>
-                  {c.label}
+              <option value="">القسم</option>
+              {SECTION_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
                 </option>
               ))}
             </select>
             <select
               value={region}
               onChange={(e) => setRegion(e.target.value)}
-              className="flex-1 rounded-xl bg-brand-bg-light px-4 py-2.5 text-brand-bg-dark outline-none sm:rounded-full"
+              className="min-w-0 flex-1 rounded-full bg-brand-bg-light px-2 py-2 text-xs text-brand-bg-dark outline-none sm:px-4 sm:text-base"
             >
               <option value="">المنطقة</option>
               {REGION_OPTIONS.map((r) => (
@@ -90,7 +91,7 @@ export default function HomePage() {
             </select>
             <button
               type="submit"
-              className="rounded-xl bg-brand-secondary px-6 py-2.5 font-bold text-brand-bg-dark transition hover:brightness-95 sm:rounded-full"
+              className="shrink-0 rounded-full bg-brand-secondary px-3 py-2 text-xs font-bold text-brand-bg-dark transition hover:brightness-95 sm:px-6 sm:text-base"
             >
               بحث
             </button>

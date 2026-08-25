@@ -12,6 +12,7 @@ const NAV = [
   { href: "/dashboard/users", label: "إدارة المستخدمين", icon: "👥", ownerOnly: true },
   { href: "/dashboard/reports", label: "إدارة البلاغات", icon: "🚩" },
   { href: "/dashboard/breeds", label: "إدارة السلالات", icon: "🧬" },
+  { href: "/dashboard/services", label: "الخدمات الإضافية للأقسام", icon: "🧩" },
   { href: "/dashboard/regions", label: "المناطق والمدن", icon: "🗺️" },
   { href: "/dashboard/admins", label: "المشرفون", icon: "🛡️", ownerOnly: true },
   { href: "/dashboard/settings", label: "إعدادات الموقع", icon: "⚙️", ownerOnly: true },

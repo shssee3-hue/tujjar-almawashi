@@ -7,6 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAuthGate } from "@/lib/useAuthGate";
 import { createAd, getAd, updateAd } from "@/lib/ads";
 import { getSiteSettings } from "@/lib/settings";
+import { listBreeds } from "@/lib/breeds";
+import { listAdditionalServices } from "@/lib/services";
 import ImageUploader from "@/components/ImageUploader";
 import BackButton from "@/components/BackButton";
 import AuthGateModal from "@/components/AuthGateModal";
@@ -20,7 +22,11 @@ import {
   CATEGORY_LABELS,
   SUB_CATEGORIES,
 } from "@/lib/constants";
-import { AdCategory } from "@/lib/types";
+import { AdCategory, Breed, AdditionalService } from "@/lib/types";
+
+function uniq(list: string[]) {
+  return Array.from(new Set(list));
+}
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat("ar-SA").format(price);
@@ -61,11 +67,18 @@ function AddAdForm() {
   const [oathText, setOathText] = useState(
     "أقسم بالله العظيم أنني ملزم بنسبة الموقع 1.5% من قيمة البيع وتبقى بذمتي حتى أدفعها للموقع."
   );
+  // Admin-added breeds/services (/dashboard/breeds, /dashboard/services) —
+  // merged into the option lists below so a new addition is selectable here
+  // immediately, not just reflected on the admin page itself.
+  const [customBreeds, setCustomBreeds] = useState<Breed[]>([]);
+  const [customServices, setCustomServices] = useState<AdditionalService[]>([]);
 
   useEffect(() => {
     getSiteSettings().then((s) => {
       if (s.oathText) setOathText(s.oathText);
     });
+    listBreeds().then(setCustomBreeds).catch(() => {});
+    listAdditionalServices().then(setCustomServices).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -204,9 +217,17 @@ function AddAdForm() {
     );
   }
 
-  const breedOptions = DEFAULT_BREEDS[animalType] || [];
+  const breedOptions = uniq([
+    ...(DEFAULT_BREEDS[animalType] || []),
+    ...customBreeds.filter((b) => b.animalType === animalType).map((b) => b.name),
+  ]);
   const regionOptions = DEFAULT_REGIONS[country] || [];
-  const subCategoryOptions = isLivestock ? [] : SUB_CATEGORIES[category];
+  const subCategoryOptions = isLivestock
+    ? []
+    : uniq([
+        ...SUB_CATEGORIES[category],
+        ...customServices.filter((s) => s.category === category).map((s) => s.name),
+      ]);
   // A retired category (currently only "offers") is never offered for a new
   // ad, but if a seller is editing one of their existing ads in that
   // category, it must still appear as the selected option — otherwise the
