@@ -38,6 +38,7 @@ function AddAdForm() {
 
   const [category, setCategory] = useState<AdCategory>(initialCategory);
   const [subCategory, setSubCategory] = useState("");
+  const [customSubCategory, setCustomSubCategory] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -82,7 +83,17 @@ function AddAdForm() {
         return;
       }
       setCategory(ad.category || "livestock");
-      setSubCategory(ad.subCategory || "");
+      // A subCategory that isn't one of the fixed options for this category
+      // is a custom value entered via "أخرى" — restore it into that mode
+      // rather than letting the select fall back to a blank/first option
+      // and silently overwrite it on save.
+      const fixedOptions = ad.category && ad.category !== "livestock" ? SUB_CATEGORIES[ad.category] : [];
+      if (ad.subCategory && !fixedOptions?.includes(ad.subCategory)) {
+        setSubCategory("أخرى");
+        setCustomSubCategory(ad.subCategory);
+      } else {
+        setSubCategory(ad.subCategory || "");
+      }
       setTitle(ad.title);
       setDescription(ad.description);
       setPrice(String(ad.price));
@@ -104,18 +115,17 @@ function AddAdForm() {
   }, [editId, router]);
 
   const isLivestock = category === "livestock";
+  const isOtherSubCategory = subCategory === "أخرى";
 
   function handleReview(e: React.FormEvent) {
     e.preventDefault();
     if (
       !title.trim() ||
       !description.trim() ||
-      !price ||
       !region ||
-      !city ||
       !phoneNumber ||
-      (isLivestock && !breed) ||
-      (!isLivestock && !subCategory)
+      (!isLivestock && !subCategory) ||
+      (isOtherSubCategory && !customSubCategory.trim())
     ) {
       toast.error("يرجى تعبئة جميع الحقول المطلوبة");
       return;
@@ -138,7 +148,7 @@ function AddAdForm() {
     try {
       const payload = {
         category,
-        subCategory: isLivestock ? "" : subCategory,
+        subCategory: isLivestock ? "" : isOtherSubCategory ? customSubCategory.trim() : subCategory,
         title: title.trim(),
         description: description.trim(),
         price: Number(price),
@@ -212,6 +222,7 @@ function AddAdForm() {
   const animalTypeOptions = ANIMAL_TYPES.includes(animalType)
     ? ANIMAL_TYPES
     : [...ANIMAL_TYPES, animalType];
+  const displaySubCategory = isOtherSubCategory ? customSubCategory : subCategory;
 
   if (step === "preview") {
     return (
@@ -233,15 +244,16 @@ function AddAdForm() {
           <div className="mt-6">
             <span className="rounded-full bg-black/5 px-3 py-1 text-xs font-bold text-black/50">
               {CATEGORY_LABELS[category]}
-              {subCategory && ` · ${subCategory}`}
+              {displaySubCategory && ` · ${displaySubCategory}`}
             </span>
             <h1 className="mt-3 text-2xl font-extrabold text-brand-bg-dark">{title}</h1>
             <p className="mt-1 text-sm text-black/50">
-              {city}، {region} — {country}
+              {city && `${city}، `}
+              {region} — {country}
             </p>
             <div className="mt-4 flex items-center gap-4">
               <span className="text-3xl font-extrabold text-brand-primary">
-                {price ? formatPrice(Number(price)) : 0} ريال
+                {price ? `${formatPrice(Number(price))} ريال` : "السعر عند الاتصال"}
               </span>
               {isNegotiable && (
                 <span className="rounded-full bg-brand-secondary/20 px-3 py-1 text-xs font-bold text-brand-primary">
@@ -258,7 +270,7 @@ function AddAdForm() {
                 </div>
                 <div>
                   <p className="text-black/40">السلالة</p>
-                  <p className="font-bold">{breed}</p>
+                  <p className="font-bold">{breed || "—"}</p>
                 </div>
                 <div>
                   <p className="text-black/40">العمر</p>
@@ -380,9 +392,8 @@ function AddAdForm() {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium">السلالة *</label>
+                <label className="mb-1 block text-sm font-medium">السلالة</label>
                 <select
-                  required
                   value={breed}
                   onChange={(e) => setBreed(e.target.value)}
                   className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
@@ -433,7 +444,17 @@ function AddAdForm() {
                   {s}
                 </option>
               ))}
+              <option value="أخرى">أخرى</option>
             </select>
+            {isOtherSubCategory && (
+              <input
+                required
+                value={customSubCategory}
+                onChange={(e) => setCustomSubCategory(e.target.value)}
+                placeholder="اكتب المسمى..."
+                className="mt-2 w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
+              />
+            )}
           </div>
         )}
 
@@ -451,10 +472,9 @@ function AddAdForm() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium">السعر (ريال) *</label>
+            <label className="mb-1 block text-sm font-medium">السعر (ريال)</label>
             <input
               type="number"
-              required
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
@@ -516,9 +536,8 @@ function AddAdForm() {
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">المدينة *</label>
+            <label className="mb-1 block text-sm font-medium">المدينة</label>
             <input
-              required
               value={city}
               onChange={(e) => setCity(e.target.value)}
               className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"

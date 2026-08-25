@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ANIMAL_TYPES, CATEGORIES } from "@/lib/constants";
-import { listFeaturedAds } from "@/lib/ads";
-import { Ad } from "@/lib/types";
-import AdCard from "@/components/AdCard";
+import { ANIMAL_TYPES, CATEGORIES, DEFAULT_REGIONS } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
 
 const CATEGORY_PHOTOS: Record<string, string> = {
@@ -19,23 +16,21 @@ const CATEGORY_PHOTOS: Record<string, string> = {
   "دواجن": "/images/animals/chicken.webp",
 };
 
+const REGION_OPTIONS = DEFAULT_REGIONS["السعودية"] || [];
+
 export default function HomePage() {
   const router = useRouter();
   const { firebaseUser } = useAuth();
-  const [q, setQ] = useState("");
-  const [featured, setFeatured] = useState<Ad[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    listFeaturedAds()
-      .then(setFeatured)
-      .catch(() => setFeatured([]))
-      .finally(() => setLoading(false));
-  }, []);
+  const [section, setSection] = useState("");
+  const [region, setRegion] = useState("");
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    router.push(q ? `/ads?q=${encodeURIComponent(q)}` : "/ads");
+    const sp = new URLSearchParams();
+    if (section) sp.set("category", section);
+    if (region) sp.set("region", region);
+    const qs = sp.toString();
+    router.push(qs ? `/ads?${qs}` : "/ads");
   }
 
   return (
@@ -67,17 +62,35 @@ export default function HomePage() {
 
           <form
             onSubmit={handleSearch}
-            className="mx-auto mt-8 flex max-w-xl overflow-hidden rounded-full bg-white shadow-lg"
+            className="mx-auto mt-8 flex max-w-xl flex-col gap-2 overflow-hidden rounded-2xl bg-white p-2 shadow-lg sm:flex-row sm:rounded-full sm:p-1.5"
           >
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="ابحث عن نوع، سلالة، مدينة..."
-              className="flex-1 px-5 py-3 text-brand-bg-dark outline-none"
-            />
+            <select
+              value={section}
+              onChange={(e) => setSection(e.target.value)}
+              className="flex-1 rounded-xl bg-brand-bg-light px-4 py-2.5 text-brand-bg-dark outline-none sm:rounded-full"
+            >
+              <option value="">القسم أو الخدمة</option>
+              {CATEGORIES.map((c) => (
+                <option key={c.key} value={c.key}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              className="flex-1 rounded-xl bg-brand-bg-light px-4 py-2.5 text-brand-bg-dark outline-none sm:rounded-full"
+            >
+              <option value="">المنطقة</option>
+              {REGION_OPTIONS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
             <button
               type="submit"
-              className="bg-brand-secondary px-6 font-bold text-brand-bg-dark transition hover:brightness-95"
+              className="rounded-xl bg-brand-secondary px-6 py-2.5 font-bold text-brand-bg-dark transition hover:brightness-95 sm:rounded-full"
             >
               بحث
             </button>
@@ -142,7 +155,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 pb-14">
+      <section className="mx-auto max-w-7xl px-4 pb-16">
         <h2 className="mb-6 text-center text-2xl font-extrabold text-brand-bg-dark">
           أقسام إضافية
         </h2>
@@ -173,26 +186,6 @@ export default function HomePage() {
             </Link>
           ))}
         </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 pb-16">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-extrabold text-brand-bg-dark">إعلانات مميزة</h2>
-          <Link href="/ads" className="text-sm font-bold text-brand-primary">
-            عرض الكل ←
-          </Link>
-        </div>
-        {loading ? (
-          <p className="text-center text-black/40">جاري التحميل...</p>
-        ) : featured.length === 0 ? (
-          <p className="text-center text-black/40">لا توجد إعلانات مميزة حاليًا</p>
-        ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {featured.map((ad) => (
-              <AdCard key={ad.id} ad={ad} />
-            ))}
-          </div>
-        )}
       </section>
     </div>
   );

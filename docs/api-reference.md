@@ -10,13 +10,14 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 | الحقل | النوع | ملاحظات |
 |---|---|---|
 | category | `livestock` \| `feed` \| `equipment` \| `services` \| `transport` \| `offers` | |
-| subCategory | string | فارغ لـ livestock، قيمة من `SUB_CATEGORIES` لبقية الأقسام |
-| title, description | string | |
-| price | number | |
+| subCategory | string | فارغ لـ livestock؛ لبقية الأقسام قيمة من `SUB_CATEGORIES`، أو نص حر كتبه المستخدم عبر خيار "أخرى" في نموذج الإضافة (غير قابل للتصفية بالبحث عمدًا) |
+| title, description | string | إلزاميان |
+| price | number | اختياري — `0` يعني "السعر عند الاتصال" في الواجهة |
 | isNegotiable | boolean | |
 | animalType, breed, age | string | تُملأ فقط عندما category=="livestock" |
 | weight | number \| null | |
-| country, region, city | string | |
+| country, region | string | إلزاميان |
+| city | string | اختياري |
 | sellerId, sellerName, sellerType, sellerRating | — | مخزّنة مباشرة على الإعلان (denormalized) |
 | phoneNumber, whatsapp | string | |
 | showCallButton, showWhatsappButton | boolean | تتحكم بظهور زر الاتصال/واتساب للمشترين — كلاهما `false` افتراضيًا؛ الرقم لا يظهر تلقائيًا أبدًا |
@@ -51,6 +52,18 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 "عروض خاصة" (`offers`) قسم متوقف — لم يعد قابلًا للاختيار عند إنشاء إعلان جديد
 ولا يظهر في الصفحة الرئيسية أو أزرار التصفية، لكن الإعلانات القديمة بهذا التصنيف
 بقيت كما هي في قاعدة البيانات ويستمر عرضها بشكل صحيح أينما فُتحت مباشرة.
+
+**الحقول الإلزامية في نموذج الإضافة/التعديل** (تحقق على مستوى الواجهة، وليس
+قواعد Firestore التي لم تفرض هذا أصلًا): القسم، عنوان الإعلان، نوع الحيوان/
+التصنيف الفرعي، الوصف، المنطقة، رقم التواصل. البقية (العمر، السعر، المدينة،
+رقم الواتساب، السلالة) اختيارية.
+
+**نظام البحث** يعتمد حصرًا على القسم (مُحدَّد مسبقًا من رابط الصفحة الرئيسية،
+غير قابل للتغيير داخل صفحة القسم) + المنطقة + "المسمى" (السلالة لصفحات نوع
+الحيوان، أو التصنيف الفرعي لبقية الأقسام) — لا بحث نصي حر ولا ترتيب اختياري
+ولا نطاق سعري؛ `listAds()` في `frontend/src/lib/ads.ts` يعكس هذا (لا معاملات
+`q`/`sort`/`minPrice`/`maxPrice`/`city` بعد الآن). الصفحة الرئيسية لا تعرض أي
+إعلانات — فقط الأقسام ومربع بحث (قسم + منطقة) ينقل مباشرة إلى `/ads`.
 
 **الدوال:** `createAd`, `updateAd`, `deleteAd`, `hardDeleteAd`, `getAd`, `incrementViews`, `listAds`, `listFeaturedAds`, `listAdsBySeller`, `listSimilarAds`, `listAllAdsAdmin` — في `frontend/src/lib/ads.ts`.
 

@@ -61,7 +61,6 @@ export default function AdDetailsClient() {
   }
 
   const isOwner = firebaseUser?.uid === ad.sellerId;
-  const mapQuery = encodeURIComponent(`${ad.city} ${ad.region} ${ad.country}`);
   const category = ad.category || "livestock";
 
   async function handleDelete() {
@@ -93,13 +92,14 @@ export default function AdDetailsClient() {
                 {ad.subCategory && ` · ${ad.subCategory}`}
               </span>
               <span>
-                {ad.city}، {ad.region} — {ad.country}
+                {ad.city && `${ad.city}، `}
+                {ad.region} — {ad.country}
               </span>
             </div>
 
             <div className="mt-4 flex items-center gap-4">
               <span className="text-3xl font-extrabold text-brand-primary">
-                {formatPrice(ad.price)} ريال
+                {ad.price > 0 ? `${formatPrice(ad.price)} ريال` : "السعر عند الاتصال"}
               </span>
               {ad.isNegotiable && (
                 <span className="rounded-full bg-brand-secondary/20 px-3 py-1 text-xs font-bold text-brand-primary">
@@ -116,7 +116,7 @@ export default function AdDetailsClient() {
                 </div>
                 <div>
                   <p className="text-black/40">السلالة</p>
-                  <p className="font-bold">{ad.breed}</p>
+                  <p className="font-bold">{ad.breed || "—"}</p>
                 </div>
                 <div>
                   <p className="text-black/40">العمر</p>
@@ -139,19 +139,6 @@ export default function AdDetailsClient() {
               <p className="whitespace-pre-line leading-relaxed text-black/70">
                 {ad.description}
               </p>
-            </div>
-
-            <div className="mt-6">
-              <h2 className="mb-2 font-bold text-brand-bg-dark">الموقع</h2>
-              <div className="overflow-hidden rounded-2xl border border-black/5">
-                <iframe
-                  title="خريطة الموقع"
-                  width="100%"
-                  height="260"
-                  loading="lazy"
-                  src={`https://maps.google.com/maps?q=${mapQuery}&z=10&output=embed`}
-                />
-              </div>
             </div>
 
             <CommentsSection adId={ad.id} sellerId={ad.sellerId} />

@@ -23,9 +23,6 @@ export interface AdFilters {
   animalType?: string;
   breed?: string;
   region?: string;
-  city?: string;
-  sort?: string;
-  q?: string;
 }
 
 export async function createAd(data: Omit<Ad, "id" | "createdAt" | "updatedAt" | "views" | "reportsCount" | "status">) {
@@ -68,29 +65,15 @@ export async function incrementViews(id: string) {
 }
 
 export async function listAds(filters: AdFilters = {}, max = 300): Promise<Ad[]> {
-  // Only the always-present status filter is applied server-side alongside
-  // the sort field; every other filter (animalType/breed/region/city/price/q)
-  // is applied client-side below. Combining several equality filters with a
-  // differently-sorted orderBy would each need its own Firestore composite
-  // index (a combinatorial number of them for this many optional filters),
-  // so this keeps the index footprint to exactly one per sort option.
-  let sortField: "createdAt" | "price" | "views" = "createdAt";
-  let sortDir: "asc" | "desc" = "desc";
-  if (filters.sort === "price_asc") {
-    sortField = "price";
-    sortDir = "asc";
-  } else if (filters.sort === "price_desc") {
-    sortField = "price";
-    sortDir = "desc";
-  } else if (filters.sort === "views") {
-    sortField = "views";
-    sortDir = "desc";
-  }
-
+  // Only the always-present status filter is applied server-side, alongside
+  // a fixed newest-first order; every other filter (category/animalType/
+  // breed/region) is applied client-side below — the search system only
+  // ever narrows by section and region, so there's no need for more than
+  // this one sort order and its one composite index.
   const q = query(
     adsCol,
     where("status", "==", "active"),
-    orderBy(sortField, sortDir),
+    orderBy("createdAt", "desc"),
     fsLimit(max)
   );
   const snap = await getDocs(q);
@@ -101,33 +84,8 @@ export async function listAds(filters: AdFilters = {}, max = 300): Promise<Ad[]>
   if (filters.animalType) ads = ads.filter((a) => a.animalType === filters.animalType);
   if (filters.breed) ads = ads.filter((a) => a.breed === filters.breed);
   if (filters.region) ads = ads.filter((a) => a.region === filters.region);
-  if (filters.city) {
-    const needleCity = filters.city.trim().toLowerCase();
-    ads = ads.filter((a) => a.city.toLowerCase().includes(needleCity));
-  }
-  if (filters.q) {
-    const needle = filters.q.trim().toLowerCase();
-    ads = ads.filter(
-      (a) =>
-        a.title.toLowerCase().includes(needle) ||
-        a.description.toLowerCase().includes(needle) ||
-        a.breed.toLowerCase().includes(needle)
-    );
-  }
 
   return ads;
-}
-
-export async function listFeaturedAds(max = 8): Promise<Ad[]> {
-  const q = query(
-    adsCol,
-    where("status", "==", "active"),
-    where("featured", "==", true),
-    orderBy("createdAt", "desc"),
-    fsLimit(max)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Ad, "id">) }));
 }
 
 export async function listAdsBySeller(sellerId: string): Promise<Ad[]> {
