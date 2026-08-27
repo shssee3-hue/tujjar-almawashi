@@ -11,6 +11,7 @@ import BackButton from "@/components/BackButton";
 import CommentsSection from "@/components/CommentsSection";
 import RatingStars from "@/components/RatingStars";
 import ShareButton from "@/components/ShareButton";
+import SaleConfirmationModal from "@/components/SaleConfirmationModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -27,6 +28,7 @@ export default function AdDetailsClient() {
   const { firebaseUser, isAdmin } = useAuth();
   const [ad, setAd] = useState<Ad | null | undefined>(undefined);
   const [similar, setSimilar] = useState<Ad[]>([]);
+  const [saleModalOpen, setSaleModalOpen] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -186,6 +188,14 @@ export default function AdDetailsClient() {
           </div>
 
           <div className="mt-6 flex flex-col gap-2 border-t border-black/5 pt-4">
+            {isOwner && ad.status === "active" && (
+              <button
+                onClick={() => setSaleModalOpen(true)}
+                className="text-start text-sm font-bold text-green-600"
+              >
+                ✅ تم البيع
+              </button>
+            )}
             {isOwner && (
               <Link
                 href={`/add-ad?edit=${ad.id}`}
@@ -206,6 +216,18 @@ export default function AdDetailsClient() {
           </div>
         </aside>
       </div>
+
+      {isOwner && (
+        <SaleConfirmationModal
+          open={saleModalOpen}
+          onClose={() => setSaleModalOpen(false)}
+          adId={ad.id}
+          adTitle={ad.title}
+          sellerId={ad.sellerId}
+          sellerName={ad.sellerName}
+          onSuccess={() => setAd({ ...ad, status: "ended" })}
+        />
+      )}
 
       {similar.length > 0 && (
         <section className="mt-14">

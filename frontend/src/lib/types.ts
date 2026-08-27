@@ -95,6 +95,29 @@ export interface SiteSettings {
   supportPhone: string;
   maintenanceMode: boolean;
   oathText: string;
+  commissionRate: number;
+  commissionText: string;
+  bankAccountNumber: string;
+  applePayLink: string;
+}
+
+export type CommissionPaymentMethod = "applepay" | "bank";
+export type CommissionStatus = "pending" | "approved" | "rejected";
+
+export interface Commission {
+  id: string;
+  adId: string;
+  adTitle: string;
+  sellerId: string;
+  sellerName: string;
+  saleAmount: number;
+  commissionRate: number;
+  commissionAmount: number;
+  paymentMethod: CommissionPaymentMethod;
+  receiptFile: string;
+  status: CommissionStatus;
+  createdAt: number;
+  reviewedAt?: number;
 }
 
 export interface Comment {

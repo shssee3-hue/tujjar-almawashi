@@ -86,8 +86,10 @@ service cloud.firestore {
       // A non-admin owner may edit their own ad's content freely, but not
       // the fields that exist specifically to record moderation/trust state:
       // featured, reportsCount and views stay untouched, and status may only
-      // move to "deleted" (the seller's own soft-delete) — not, say, back to
-      // "active" to quietly reverse an admin's "flagged" decision.
+      // move to "deleted" (the seller's own soft-delete) or "ended" (marking
+      // it sold via "تم البيع", which is what starts the commission flow) —
+      // not, say, back to "active" to quietly reverse an admin's "flagged"
+      // decision.
       allow update: if isAdmin()
         || (isSignedIn()
             && resource.data.sellerId == request.auth.uid
@@ -99,7 +101,8 @@ service cloud.firestore {
             && request.resource.data.reportsCount == resource.data.reportsCount
             && request.resource.data.views == resource.data.views
             && (request.resource.data.status == resource.data.status
-                || request.resource.data.status == "deleted"))
+                || request.resource.data.status == "deleted"
+                || request.resource.data.status == "ended"))
         // The public view counter: open to anyone (including signed-out
         // visitors), but scoped so tightly it can't be used for anything
         // else — the only field allowed to change is "views", and only by
@@ -175,6 +178,27 @@ service cloud.firestore {
     match /settings/{docId} {
       allow read: if true;
       allow write: if isSystemOwner();
+    }
+
+    // commissions/{commissionId} — a seller's self-reported sale + the
+    // commission owed on it, submitted via "تم البيع", reviewed by admin.
+    match /commissions/{commissionId} {
+      // A seller can see their own submissions (e.g. to check their status
+      // later); admin/owner can see all of them for review.
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.sellerId == request.auth.uid);
+      // Only the ad's actual seller may file a claim for it, and only as
+      // "pending" — nobody can create one that's already approved/rejected.
+      allow create: if isSignedIn()
+        && request.resource.data.sellerId == request.auth.uid
+        && request.resource.data.status == "pending"
+        && get(/databases/$(database)/documents/ads/$(request.resource.data.adId)).data.sellerId == request.auth.uid;
+      // Only admin/owner can review it, and only the review fields —
+      // the seller's original claim (amounts, receipt, payment method)
+      // can never be edited after submission by anyone.
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "reviewedAt"]);
+      allow delete: if isAdmin();
     }
   }
 }

@@ -40,13 +40,23 @@ export default function AdsExplorer() {
   const [category, setCategory] = useState<AdCategory | "">("");
   const [region, setRegion] = useState("");
   const [label, setLabel] = useState("");
+  // A visitor who arrived via a homepage tile/search (URL already carries
+  // animalType or category) is on a "section page" — the section field
+  // locks to that one value and no longer offers switching to another
+  // section from within the page. A plain /ads visit with neither param is
+  // the general "تصفح الإعلانات" page, where the section field stays fully
+  // open (matches whichever value the visitor picks, if any).
+  const [locked, setLocked] = useState(false);
 
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
-    setAnimalType(sp.get("animalType") || "");
-    setCategory((sp.get("category") as AdCategory) || "");
+    const at = sp.get("animalType") || "";
+    const cat = sp.get("category") || "";
+    setAnimalType(at);
+    setCategory(cat as AdCategory);
     setRegion(sp.get("region") || "");
     setLabel(sp.get("label") || "");
+    setLocked(!!(at || cat));
   }, [params]);
 
   const [ads, setAds] = useState<Ad[]>([]);
@@ -168,14 +178,24 @@ export default function AdsExplorer() {
         <select
           value={section}
           onChange={(e) => handleSectionChange(e.target.value)}
-          className="h-9 min-w-0 flex-1 rounded-lg border border-black/10 px-1.5 text-xs outline-none focus:border-brand-secondary sm:px-2 sm:text-sm"
+          disabled={locked}
+          title={locked ? "القسم محدَّد من الصفحة التي أتيت منها" : undefined}
+          className={`h-9 min-w-0 flex-1 rounded-lg border border-black/10 px-1.5 text-xs outline-none focus:border-brand-secondary sm:px-2 sm:text-sm ${
+            locked ? "bg-black/5 text-black/60" : ""
+          }`}
         >
-          <option value="">كل الأقسام</option>
-          {sectionOptions.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
+          {locked ? (
+            <option value={section}>{title}</option>
+          ) : (
+            <>
+              <option value="">كل الأقسام</option>
+              {sectionOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </>
+          )}
         </select>
 
         {labelField && labelOptions.length > 0 && (

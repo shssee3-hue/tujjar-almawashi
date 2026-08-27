@@ -76,6 +76,52 @@ function SettingsContent() {
           />
           وضع الصيانة (إخفاء الموقع مؤقتًا عن الزوار)
         </label>
+
+        <hr className="border-black/10" />
+        <h2 className="-mb-2 font-bold text-brand-bg-dark">نظام العمولة</h2>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium">نسبة العمولة (%)</label>
+          <input
+            type="number"
+            step="0.1"
+            value={settings.commissionRate}
+            onChange={(e) =>
+              setSettings({ ...settings, commissionRate: Number(e.target.value) })
+            }
+            className="w-full rounded-xl border border-black/10 px-4 py-2.5"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">رقم الحساب البنكي</label>
+          <input
+            dir="ltr"
+            value={settings.bankAccountNumber}
+            onChange={(e) => setSettings({ ...settings, bankAccountNumber: e.target.value })}
+            className="w-full rounded-xl border border-black/10 px-4 py-2.5 text-right"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">رابط Apple Pay</label>
+          <input
+            dir="ltr"
+            value={settings.applePayLink}
+            onChange={(e) => setSettings({ ...settings, applePayLink: e.target.value })}
+            className="w-full rounded-xl border border-black/10 px-4 py-2.5 text-right"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            الصيغة القانونية المعتمدة للعمولة
+          </label>
+          <textarea
+            rows={8}
+            value={settings.commissionText}
+            onChange={(e) => setSettings({ ...settings, commissionText: e.target.value })}
+            className="w-full rounded-xl border border-black/10 px-4 py-2.5"
+          />
+        </div>
+
         <button
           type="submit"
           disabled={saving}

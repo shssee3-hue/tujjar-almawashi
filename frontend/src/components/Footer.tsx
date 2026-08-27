@@ -39,9 +39,17 @@ export default function Footer() {
         <div>
           <h3 className="mb-3 font-bold text-white">تواصل معنا</h3>
           <p className="text-sm text-white/60">
-            للاستفسارات والدعم الفني يرجى التواصل عبر البريد الإلكتروني أو
-            الأرقام المتاحة داخل حسابك.
+            للاستفسارات والدعم الفني، يمكنكم التواصل معنا عبر الواتساب مباشرة:
           </p>
+          <a
+            href="https://wa.me/966593434546"
+            target="_blank"
+            rel="noopener noreferrer"
+            dir="ltr"
+            className="mt-2 inline-flex items-center gap-1.5 font-bold text-brand-secondary hover:underline"
+          >
+            💬 0593434546
+          </a>
         </div>
       </div>
       <div className="border-t border-white/10 py-4 text-center text-xs text-white/40">

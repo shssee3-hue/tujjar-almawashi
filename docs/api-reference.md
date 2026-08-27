@@ -38,8 +38,10 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 
 **التعديل:** صاحب الإعلان يقدر يعدّل محتوى إعلانه بحرية (العنوان، السعر، الصور،
 إلخ)، لكن لا يقدر يغيّر `featured`/`reportsCount`/`views` إطلاقًا، ولا يقدر يغيّر
-`status` إلا إلى `"deleted"` (حذفه الذاتي الناعم) — لا يقدر مثلاً يُرجع إعلانه من
-`"flagged"` إلى `"active"` بنفسه ليتحايل على قرار إشراف. admin/owner معفيّون من
+`status` إلا إلى `"deleted"` (حذفه الذاتي الناعم) أو `"ended"` (تُضبط تلقائيًا من
+`SaleConfirmationModal` عند تأكيد "تم البيع" — راجع قسم `commissions` أدناه) — لا
+يقدر مثلاً يُرجع إعلانه من `"flagged"` إلى `"active"` بنفسه ليتحايل على قرار إشراف.
+admin/owner معفيّون من
 هذا القيد بالكامل (`isAdmin()` يمرّ أولًا). بالإضافة لذلك، **أي شخص** (حتى غير
 مسجّل دخول) يقدر يزيد `views` تحديدًا بمقدار +1 بالضبط ولا شيء غيره — هذا ما
 يشغّل عداد المشاهدات العام في `incrementViews()`؛ ملاحظة: `featured` قد يكون
@@ -58,12 +60,21 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 التصنيف الفرعي، الوصف، المنطقة، رقم التواصل. البقية (العمر، السعر، المدينة،
 رقم الواتساب، السلالة) اختيارية.
 
-**نظام البحث** يعتمد حصرًا على القسم (مُحدَّد مسبقًا من رابط الصفحة الرئيسية،
-غير قابل للتغيير داخل صفحة القسم) + المنطقة + "المسمى" (السلالة لصفحات نوع
+**نظام البحث** يعتمد حصرًا على القسم + المنطقة + "المسمى" (السلالة لصفحات نوع
 الحيوان، أو التصنيف الفرعي لبقية الأقسام) — لا بحث نصي حر ولا ترتيب اختياري
 ولا نطاق سعري؛ `listAds()` في `frontend/src/lib/ads.ts` يعكس هذا (لا معاملات
 `q`/`sort`/`minPrice`/`maxPrice`/`city` بعد الآن). الصفحة الرئيسية لا تعرض أي
 إعلانات — فقط الأقسام ومربع بحث (قسم + منطقة) ينقل مباشرة إلى `/ads`.
+
+**قفل حقل القسم داخل صفحة قسم محدَّد:** عند الوصول لـ `/ads` عبر رابط يحمل
+`animalType` أو `category` (كما يحدث من الصفحة الرئيسية أو أي بطاقة قسم)، حقل
+"القسم" في شريط البحث يُقفل تلقائيًا على القسم الحالي فقط (`disabled`، ويعرض
+خيارًا واحدًا هو القسم الحالي) — لا يمكن للمستخدم تصفّح كل الأقسام من هناك.
+المنطقة و"المسمى" (السلالة/التصنيف الفرعي) يبقيان قابلين للتغيير، والمسمى
+مبني ديناميكيًا من خيارات هذا القسم تحديدًا. أما `/ads` بدون أي معامل قسم
+("تصفح الإعلانات" العامة) فتعرض شريط بحث كامل غير مُقفل: كل الأقسام، كل
+المناطق، وكل المسميات. المنطق في `AdsExplorer.tsx` (متغيّر `locked`، مبني من
+وجود `animalType`/`category` في `window.location.search`).
 
 **الدوال:** `createAd`, `updateAd`, `deleteAd`, `hardDeleteAd`, `getAd`, `incrementViews`, `listAds`, `listFeaturedAds`, `listAdsBySeller`, `listSimilarAds`, `listAllAdsAdmin` — في `frontend/src/lib/ads.ts`.
 
@@ -114,6 +125,56 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 الصيانة، ونص إقرار العمولة الإلزامي `oathText` — قابل للتعديل من
 `/dashboard/oath-text`). القراءة عامة، الكتابة لـ **owner فقط**. الدوال في
 `settings.ts`.
+
+**حقول نظام العمولة (`commissionRate`, `commissionText`, `bankAccountNumber`,
+`applePayLink`)** أُضيفت لنفس المستند — قابلة للتعديل من `/dashboard/settings`
+("نظام العمولة"):
+
+| الحقل | النوع | ملاحظات |
+|---|---|---|
+| commissionRate | number | نسبة مئوية (افتراضيًا `1.5`)، تُستخدم لحساب `commissionAmount` تلقائيًا عند "تم البيع" |
+| commissionText | string | النص القانوني المعروض في نموذج "تم البيع" وعلى صفحة دفع العمولة؛ القيمة الافتراضية هي الصيغة القانونية المعتمدة التي زوّدنا بها صاحب المشروع |
+| bankAccountNumber | string | رقم الحساب البنكي المعروض عند اختيار "تحويل بنكي"؛ فارغ افتراضيًا (تظهر رسالة "لم يضبط المدير..." للبائع حتى يُضبط) |
+| applePayLink | string | رابط الدفع عبر Apple Pay؛ نفس السلوك عند الفراغ |
+
+## commissions
+
+تُنشأ تلقائيًا عند ضغط البائع على "✅ تم البيع" في صفحة إعلانه (زر يظهر فقط
+لصاحب الإعلان و`status == "active"`) عبر `SaleConfirmationModal` — يفتح نموذج
+"تأكيد البيع" (`frontend/src/components/SaleConfirmationModal.tsx`)، وعند
+الإرسال ينشئ مستند `commissions` **ثم** يضبط `ads/{adId}.status = "ended"`.
+
+| الحقل | النوع | ملاحظات |
+|---|---|---|
+| adId, adTitle | string | |
+| sellerId, sellerName | string | مأخوذة من الإعلان نفسه، لا من مدخلات حرة |
+| saleAmount | number | يُدخلها البائع — قيمة البيع الفعلية |
+| commissionRate | number | نسخة من `settings/site.commissionRate` وقت الإنشاء (تُجمَّد على المستند، فلا يتغيّر احتساب عمولة قديمة لو عدّل المدير النسبة لاحقًا) |
+| commissionAmount | number | `saleAmount * commissionRate / 100`، محسوبة في الواجهة |
+| paymentMethod | `applepay` \| `bank` | |
+| receiptFile | string | إيصال الدفع، Data URI بصيغة base64 (نفس أسلوب `images` في `ads` — لا Cloud Storage) |
+| status | `pending` \| `approved` \| `rejected` | `pending` إلزاميًا عند الإنشاء |
+| createdAt | number | |
+| reviewedAt | number، اختياري | تُضبط من admin/owner عند تغيير الحالة |
+
+**الصلاحيات:**
+- **القراءة:** admin/owner، أو البائع صاحب العمولة (`sellerId == auth.uid`) لسجله فقط.
+- **الإنشاء:** أي مستخدم مسجّل، لكن فقط إن كان `sellerId == auth.uid` **و**كان
+  فعليًا بائع الإعلان `adId` المشار إليه (يتحقق عبر `get()` على مستند الإعلان)،
+  **و**`status == "pending"` إلزاميًا — هذا يمنع انتحال عمولة باسم بائع آخر أو
+  عن إعلان لا يملكه، أو تزوير حالة الموافقة عند الإنشاء مباشرة.
+- **التعديل:** admin/owner فقط، ومحصور بتغيير `status`/`reviewedAt` حصرًا
+  (`request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status","reviewedAt"])`)
+  — لا يقدر أحد (ولا حتى admin) تعديل `saleAmount`/`commissionAmount`/`receiptFile`
+  بعد الإنشاء.
+- **الحذف:** admin/owner فقط.
+
+**لوحة الإدارة:** `/dashboard/commissions` ("إدارة العمولات") — جدول بكل
+عمليات البيع المسجّلة مع أزرار قبول/رفض، مُقيَّد بـ `ownerOnly: true` في
+`DashboardShell.tsx` (قرار احترازي لأنه يتعامل مع بيانات دفع، وليس مطلوبًا
+صراحة من المواصفات).
+
+**الدوال:** `createCommission`, `listCommissionsAdmin`, `setCommissionStatus` — في `frontend/src/lib/commissions.ts`.
 
 ## comments
 
