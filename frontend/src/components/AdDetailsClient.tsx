@@ -29,6 +29,7 @@ export default function AdDetailsClient() {
   const [ad, setAd] = useState<Ad | null | undefined>(undefined);
   const [similar, setSimilar] = useState<Ad[]>([]);
   const [saleModalOpen, setSaleModalOpen] = useState(false);
+  const [saleConfirmChecked, setSaleConfirmChecked] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -189,12 +190,24 @@ export default function AdDetailsClient() {
 
           <div className="mt-6 flex flex-col gap-2 border-t border-black/5 pt-4">
             {isOwner && ad.status === "active" && (
-              <button
-                onClick={() => setSaleModalOpen(true)}
-                className="text-start text-sm font-bold text-green-600"
-              >
-                ✅ تم البيع
-              </button>
+              <div className="flex flex-col gap-2 rounded-xl bg-green-50 p-3">
+                <label className="flex cursor-pointer items-start gap-2 text-xs font-medium text-black/70">
+                  <input
+                    type="checkbox"
+                    checked={saleConfirmChecked}
+                    onChange={(e) => setSaleConfirmChecked(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-green-600"
+                  />
+                  أؤكد أن عملية البيع تمت فعليًا
+                </label>
+                <button
+                  onClick={() => setSaleModalOpen(true)}
+                  disabled={!saleConfirmChecked}
+                  className="rounded-lg bg-green-600 py-2 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/40"
+                >
+                  ✅ تم البيع
+                </button>
+              </div>
             )}
             {isOwner && (
               <Link

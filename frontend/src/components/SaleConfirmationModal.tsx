@@ -33,6 +33,7 @@ export default function SaleConfirmationModal({
   const [saleAmount, setSaleAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<CommissionPaymentMethod>("applepay");
   const [receiptFile, setReceiptFile] = useState<string>("");
+  const [receiptFileName, setReceiptFileName] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -52,6 +53,7 @@ export default function SaleConfirmationModal({
     setUploading(true);
     try {
       setReceiptFile(await fileToCompressedDataUrl(file));
+      setReceiptFileName(file.name);
     } catch {
       toast.error("تعذر معالجة صورة الإيصال");
     } finally {
@@ -187,13 +189,22 @@ export default function SaleConfirmationModal({
 
             <div>
               <label className="mb-1 block text-sm font-medium">إيصال الدفع *</label>
+              <label
+                htmlFor="receipt-upload"
+                className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-lg border border-[#ddd] bg-[#f5f5f5] px-3 text-sm text-black/60 transition hover:bg-black/10"
+              >
+                <span className="text-base">📎</span>
+                <span className="truncate">
+                  {uploading ? "جاري رفع الصورة..." : receiptFileName || "اختر ملف الإيصال"}
+                </span>
+              </label>
               <input
+                id="receipt-upload"
                 type="file"
                 accept="image/*"
                 onChange={(e) => handleFile(e.target.files)}
-                className="w-full text-sm"
+                className="hidden"
               />
-              {uploading && <p className="mt-1 text-xs text-black/40">جاري رفع الصورة...</p>}
               {receiptFile && !uploading && (
                 <p className="mt-1 text-xs text-green-600">✓ تم إرفاق الإيصال</p>
               )}
