@@ -13,8 +13,11 @@ import {
   signOut as firebaseSignOut,
 } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
+import toast from "react-hot-toast";
 import { auth, db } from "@/lib/firebase";
 import { UserProfile } from "@/lib/types";
+
+export const BANNED_MESSAGE = "تم حظر حسابك من قبل إدارة المنصة.";
 
 interface AuthContextValue {
   firebaseUser: FirebaseUser | null;
@@ -55,7 +58,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     const unsubDoc = onSnapshot(doc(db, "users", firebaseUser.uid), (snap) => {
       if (snap.exists()) {
-        setProfile({ id: snap.id, ...(snap.data() as Omit<UserProfile, "id">) });
+        const data = { id: snap.id, ...(snap.data() as Omit<UserProfile, "id">) };
+        // A banned account is force-signed-out the instant this fires — whether
+        // that's right after login (see login/page.tsx's own earlier check for
+        // the normal case) or live, mid-session, if an admin bans someone who
+        // is already browsing the site in another tab.
+        if (data.banned) {
+          firebaseSignOut(auth);
+          toast.error(BANNED_MESSAGE);
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
+        setProfile(data);
       } else {
         setProfile(null);
       }

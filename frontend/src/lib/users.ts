@@ -9,7 +9,8 @@ import {
   orderBy,
   limit as fsLimit,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { httpsCallable } from "firebase/functions";
+import { db, functions } from "./firebase";
 import { UserProfile } from "./types";
 
 export async function createUserProfile(
@@ -48,4 +49,14 @@ export async function setUserRole(uid: string, role: "user" | "admin") {
 
 export async function setUserBanned(uid: string, banned: boolean) {
   await updateDoc(doc(db, "users", uid), { banned });
+}
+
+// Owner-only, backed by the deleteUserCompletely Cloud Function — permanent
+// deletion of another user's account (profile, ads, ratings, commissions,
+// AND their actual Firebase Auth account) needs Admin SDK privileges no
+// client can safely hold, so this is the one write in this file that isn't
+// a plain Firestore call. See functions/src/index.ts.
+export async function deleteUserPermanently(uid: string) {
+  const fn = httpsCallable(functions, "deleteUserCompletely");
+  await fn({ targetUid: uid });
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { loginUser, authErrorMessage } from "@/lib/auth";
+import { getUserProfile } from "@/lib/users";
 import { useAuth } from "@/contexts/AuthContext";
 import BackButton from "@/components/BackButton";
 import PasswordInput from "@/components/PasswordInput";
@@ -30,7 +31,15 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await loginUser(email, password);
+      const user = await loginUser(email, password);
+      const profile = await getUserProfile(user.uid);
+      if (profile?.banned) {
+        // Don't navigate or show a success toast — AuthContext's own live
+        // profile listener (already firing in parallel off the same
+        // onAuthStateChanged) is the single source of truth that signs a
+        // banned account back out and shows the one "تم حظر..." message.
+        return;
+      }
       toast.success("تم تسجيل الدخول بنجاح");
       router.push("/profile");
     } catch (err) {
@@ -67,6 +76,12 @@ export default function LoginPage() {
               onChange={setPassword}
               placeholder="••••••••"
             />
+            <Link
+              href="/forgot-password"
+              className="mt-1.5 inline-block text-xs font-medium text-brand-primary hover:underline"
+            >
+              نسيت كلمة المرور؟
+            </Link>
           </div>
           <button
             type="submit"

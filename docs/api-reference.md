@@ -87,15 +87,27 @@ admin/owner معفيّون من
 | accountType | `individual` \| `trader` |
 | role | `user` \| `admin` \| `owner` |
 | rating, adsCount, reportsCount | number |
-| banned | boolean، اختياري | غائب حتى يضبطه admin عبر `setUserBanned` — القاعدة تقارنه بـ `.get("banned", false)` وليس الوصول المباشر، وإلا يرمي خطأ ويرفض تعديل الحساب لكل من لم يُحظر قط |
+| banned | boolean، اختياري | غائب حتى يضبطه **owner** عبر `setUserBanned` (زر "حظر" في `/dashboard/users`، خلف مربع تأكيد) — القاعدة تقارنه بـ `.get("banned", false)` وليس الوصول المباشر، وإلا يرمي خطأ ويرفض تعديل الحساب لكل من لم يُحظر قط. **يُفرض فعليًا عند الدخول**: `login/page.tsx` يتحقق من الحقل فور نجاح `signInWithEmailAndPassword` ولا يُكمل الدخول إن كان `true`؛ و`AuthContext` يشترك بشكل حي (`onSnapshot`) على ملف أي مستخدم مسجّل دخول، فإن حُظر أثناء تصفّحه الموقع يُسجَّل خروجه فورًا برسالة "تم حظر حسابك من قبل إدارة المنصة." — وليس فقط عند محاولة دخول جديدة. |
 
 **الصلاحيات:**
 - القراءة: كل حساب يقرأ مستنده الخاص فقط، إلا **owner** فيقرأ أي حساب.
 - الإنشاء: ذاتي فقط، بدور `user` إلزاميًا.
 - التعديل: **owner** فقط يقدر يغيّر `role`/`banned`؛ أي حساب يقدر يعدّل بياناته الشخصية (الاسم/الجوال) بدون المساس بهذه الحقول.
-- الحذف: **owner** فقط.
+- الحذف: **owner** فقط (حذف مباشر لمستند Firestore فقط — راجع "الحذف النهائي" أدناه للحذف الكامل الفعلي).
 
-**الدوال:** `createUserProfile`, `getUserProfile`, `updateUserProfile`, `listAllUsersAdmin`, `setUserRole`, `setUserBanned` — في `frontend/src/lib/users.ts`.
+**الحذف النهائي (زر "🗑️ حذف نهائي" في `/dashboard/users`، خلف مربع تأكيد):**
+حذف حساب مستخدم بالكامل — بياناته، إعلاناته، تقييماته، وسجلات عمولته، **بالإضافة**
+لحسابه الفعلي في Firebase Auth — لا يمكن تنفيذه من المتصفح وحده مهما كانت صلاحيات
+Firestore، لأن حذف حساب Auth **مستخدم آخر** (غير الحساب المسجّل دخوله حاليًا) يتطلب
+Admin SDK، وهو ما لا يعمل إلا من كود خادم. لهذا هذا الإجراء ينفَّذ عبر Cloud Function
+اسمها `deleteUserCompletely` (`frontend/functions/src/index.ts`)، تتحقق أولًا أن
+المستدعي فعلًا `role == "owner"` من ملفه في Firestore، ثم تحذف بالتتابع: إعلانات
+البائع (`ads` حيث `sellerId`)، تقييماته (`ratings` حيث `userId`)، عمولاته
+(`commissions` حيث `sellerId`)، ملفه في `users`، وأخيرًا حسابه في Firebase Auth
+عبر `admin.auth().deleteUser()`. **يتطلب خطة Blaze** — راجع
+`docs/cloud-functions-setup.md`.
+
+**الدوال:** `createUserProfile`, `getUserProfile`, `updateUserProfile`, `listAllUsersAdmin`, `setUserRole`, `setUserBanned`, `deleteUserPermanently` — في `frontend/src/lib/users.ts`.
 
 ## reports
 
@@ -241,3 +253,49 @@ admin) للقيمة التي كانت عليها قبل الاختبار، حت�
 
 Firebase Authentication — Email/Password. الدوال: `registerUser`, `loginUser`,
 `authErrorMessage` في `frontend/src/lib/auth.ts`.
+
+## password_resets
+
+سجلات رمز التحقق (OTP) لتدفق "نسيت كلمة المرور" عبر رقم الجوال
+(`/forgot-password` → `/forgot-password/verify` → `/forgot-password/reset`).
+كل الحقول والمنطق يعيش في Cloud Functions (`frontend/functions/src/index.ts`)
+— لا يوجد أي كود عميل يقرأ أو يكتب هذه المجموعة مباشرة.
+
+| الحقل | النوع | ملاحظات |
+|---|---|---|
+| phone | string | |
+| otp | string | 6 أرقام، عشوائي (`crypto.randomInt`) |
+| uid | string | معرّف حساب Firebase Auth المطابق — يُستخدم لاحقًا في `admin.auth().updateUser()` |
+| createdAt, expiresAt | number | صلاحية 3 دقائق (`OTP_TTL_MS`) |
+| used | boolean | يُضبط `true` إمّا بعد نجاح تغيير كلمة المرور، أو فور إنشاء طلب أحدث لنفس الرقم (يُبطل كل الطلبات السابقة غير المستخدمة) |
+| verified | boolean | `true` بعد التحقق الناجح من الرمز — شرط لازم قبل السماح بتغيير كلمة المرور في الخطوة التالية |
+| attempts | number | عدّاد محاولات خاطئة، يُبطل الطلب تلقائيًا (`used=true`) بعد 5 محاولات |
+
+**الصلاحيات:** `allow read, write: if false;` في `firestore.rules` — القراءة/الكتابة
+حصرًا عبر Admin SDK داخل Cloud Functions (تتجاوز قواعد الأمان أصلًا)، فلا حاجة
+لفتح أي وصول للعميل، وزائر غير مسجّل دخول لا يملك أصلًا سياق مصادقة Firestore
+يُمنح عبره وصولًا.
+
+**التدفق الكامل:**
+1. `requestPasswordResetOtp({ phone })` — يبحث عن `users` حيث `phoneNumber == phone`؛ إن لم يوجد يرمي `not-found` ("هذا الرقم غير مسجّل في المنصة"). يُبطل أي طلبات سابقة غير مستخدمة لنفس الرقم، يولّد الرمز، يخزّنه، ويرسله عبر SMS (راجع `docs/cloud-functions-setup.md` لإعداد مزوّد الرسائل). يُعيد `{ resetId, expiresAt }` فقط — الرمز نفسه لا يُعاد للعميل أبدًا.
+2. `verifyPasswordResetOtp({ resetId, otp })` — يتحقق من عدم الانتهاء (`deadline-exceeded`)، عدم الاستخدام، وتطابق الرمز (`invalid-argument` عند الخطأ، مع زيادة `attempts`)؛ عند النجاح يضبط `verified=true` فقط (وليس `used`، حتى لا يُهدر المحاولة إن لم يُكمل المستخدم الخطوة التالية).
+3. `resetPasswordWithOtp({ resetId, newPassword })` — يتطلب `verified==true && used==false`؛ يتحقق من قوة كلمة المرور (6 خانات فأكثر، أرقام وحروف) على الخادم أيضًا وليس فقط في الواجهة، يستدعي `admin.auth().updateUser(uid, { password })`، ثم يضبط `used=true`.
+
+**الدوال (عميل):** `requestPasswordResetOtp`, `verifyPasswordResetOtp`, `resetPasswordWithOtp`, `passwordResetErrorMessage` — في `frontend/src/lib/passwordReset.ts`، تستدعي الدوال أعلاه عبر `httpsCallable`.
+
+## Cloud Functions (`frontend/functions/`)
+
+أول كود خادم (server-side / Admin SDK) في هذا المشروع — كل شيء آخر يتصل
+بـ Firestore مباشرة من المتصفح. أربع دوال `onCall` في
+`frontend/functions/src/index.ts`، منطقة `us-central1`:
+
+| الدالة | من يستدعيها | الغرض |
+|---|---|---|
+| `requestPasswordResetOtp` | أي زائر (غير مسجّل دخول) | الخطوة 1 من نسيان كلمة المرور |
+| `verifyPasswordResetOtp` | أي زائر | الخطوة 2 |
+| `resetPasswordWithOtp` | أي زائر | الخطوة 3 — التغيير الفعلي لكلمة المرور عبر Admin SDK |
+| `deleteUserCompletely` | owner فقط (يتحقق من `role` داخليًا) | حذف مستخدم نهائيًا من Firestore و Auth معًا |
+
+**يتطلب خطة Blaze (الدفع حسب الاستخدام)** على مشروع Firebase — Cloud Functions
+لا تعمل على الخطة المجانية (Spark) إطلاقًا. راجع `docs/cloud-functions-setup.md`
+للخطوات الكاملة (تفعيل Blaze، إعداد مزوّد الرسائل النصية، النشر).

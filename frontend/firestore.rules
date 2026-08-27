@@ -220,5 +220,18 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "reviewedAt"]);
       allow delete: if isAdmin();
     }
+
+    // password_resets/{resetId} — OTP records for the phone-based "forgot
+    // password" flow. Every legitimate reader/writer is the Cloud Functions
+    // in functions/src/index.ts, which use the Admin SDK and so bypass
+    // these rules entirely — a logged-out visitor requesting a reset has no
+    // Firestore auth context of their own to grant access through anyway.
+    // Denying all direct client access means an OTP (or the fact that one
+    // exists for a given phone) can never be read, guessed at, or tampered
+    // with by calling the Firestore API directly instead of going through
+    // the Cloud Functions' own validation (expiry, attempt limit, etc).
+    match /password_resets/{resetId} {
+      allow read, write: if false;
+    }
   }
 }
