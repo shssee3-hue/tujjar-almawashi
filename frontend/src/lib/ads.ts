@@ -11,11 +11,31 @@ import {
   orderBy,
   limit as fsLimit,
   increment,
+  runTransaction,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { Ad, AdCategory } from "./types";
 
 const adsCol = collection(db, "ads");
+
+// Generates a human-readable, sequential ad code like "AD-2026-001245" —
+// AD + the current year + a 6-digit zero-padded sequence number that resets
+// each year. Backed by a single counters/adCode document incremented inside
+// a transaction so concurrent ad creations never collide on the same
+// number; firestore.rules constrains the counter update to a strict +1 (or
+// reset-to-1 on a year change) so a client can't rewind or corrupt it.
+async function generateAdCode(): Promise<string> {
+  const year = new Date().getFullYear();
+  const counterRef = doc(db, "counters", "adCode");
+  const seq = await runTransaction(db, async (tx) => {
+    const snap = await tx.get(counterRef);
+    const prev = snap.exists() ? (snap.data() as { year: number; seq: number }) : null;
+    const nextSeq = prev && prev.year === year ? prev.seq + 1 : 1;
+    tx.set(counterRef, { year, seq: nextSeq });
+    return nextSeq;
+  });
+  return `AD-${year}-${String(seq).padStart(6, "0")}`;
+}
 
 export interface AdFilters {
   category?: AdCategory;
@@ -25,10 +45,12 @@ export interface AdFilters {
   region?: string;
 }
 
-export async function createAd(data: Omit<Ad, "id" | "createdAt" | "updatedAt" | "views" | "reportsCount" | "status">) {
+export async function createAd(data: Omit<Ad, "id" | "adCode" | "createdAt" | "updatedAt" | "views" | "reportsCount" | "status">) {
   const now = Date.now();
+  const adCode = await generateAdCode();
   const docRef = await addDoc(adsCol, {
     ...data,
+    adCode,
     createdAt: now,
     updatedAt: now,
     views: 0,

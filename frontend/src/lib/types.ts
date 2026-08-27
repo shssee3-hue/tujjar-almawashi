@@ -13,6 +13,7 @@ export type AdCategory =
 
 export interface Ad {
   id: string;
+  adCode?: string;
   category: AdCategory;
   title: string;
   description: string;
@@ -107,6 +108,7 @@ export type CommissionStatus = "pending" | "approved" | "rejected";
 export interface Commission {
   id: string;
   adId: string;
+  adCode?: string;
   adTitle: string;
   sellerId: string;
   sellerName: string;

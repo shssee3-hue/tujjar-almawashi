@@ -25,6 +25,7 @@ function formatPrice(n: number) {
 export default function AdminCommissionsPage() {
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [filter, setFilter] = useState<CommissionStatus | "all">("all");
+  const [codeSearch, setCodeSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -37,7 +38,10 @@ export default function AdminCommissionsPage() {
 
   useEffect(refresh, []);
 
-  const filtered = filter === "all" ? commissions : commissions.filter((c) => c.status === filter);
+  const normalizedSearch = codeSearch.trim().toLowerCase();
+  const filtered = commissions
+    .filter((c) => filter === "all" || c.status === filter)
+    .filter((c) => !normalizedSearch || (c.adCode || "").toLowerCase().includes(normalizedSearch));
 
   async function handleStatus(id: string, status: CommissionStatus) {
     await setCommissionStatus(id, status);
@@ -64,6 +68,21 @@ export default function AdminCommissionsPage() {
         </div>
       </div>
 
+      <div>
+        <label htmlFor="ad-code-search" className="mb-1 block text-sm font-medium text-black/60">
+          بحث برقم الإعلان
+        </label>
+        <input
+          id="ad-code-search"
+          type="text"
+          dir="ltr"
+          value={codeSearch}
+          onChange={(e) => setCodeSearch(e.target.value)}
+          placeholder="AD-2026-000123"
+          className="w-full max-w-xs rounded-xl border border-black/10 px-4 py-2.5 text-sm outline-none focus:border-brand-secondary"
+        />
+      </div>
+
       {loading ? (
         <p className="text-black/40">جاري التحميل...</p>
       ) : filtered.length === 0 ? (
@@ -76,6 +95,7 @@ export default function AdminCommissionsPage() {
             <thead className="bg-black/5 text-right">
               <tr>
                 <th className="px-4 py-3">الإعلان</th>
+                <th className="px-4 py-3">رقم الإعلان</th>
                 <th className="px-4 py-3">البائع</th>
                 <th className="px-4 py-3">قيمة البيع</th>
                 <th className="px-4 py-3">العمولة</th>
@@ -92,6 +112,9 @@ export default function AdminCommissionsPage() {
                     <Link href={`/ad?id=${c.adId}`} className="font-medium text-brand-primary">
                       {c.adTitle || c.adId}
                     </Link>
+                  </td>
+                  <td className="px-4 py-3">
+                    <bdi>{c.adCode || "—"}</bdi>
                   </td>
                   <td className="px-4 py-3">{c.sellerName}</td>
                   <td className="px-4 py-3">{formatPrice(c.saleAmount)} ريال</td>

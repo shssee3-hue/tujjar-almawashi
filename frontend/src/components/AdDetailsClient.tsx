@@ -89,6 +89,11 @@ export default function AdDetailsClient() {
                 </span>
               )}
             </div>
+            {ad.adCode && (
+              <p className="mt-0.5 text-xs text-black/40">
+                رقم الإعلان: <bdi className="font-medium">{ad.adCode}</bdi>
+              </p>
+            )}
             <div className="mt-1 flex items-center gap-2 text-sm text-black/50">
               <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs font-bold text-black/60">
                 {CATEGORY_LABELS[category]}
@@ -235,6 +240,7 @@ export default function AdDetailsClient() {
           open={saleModalOpen}
           onClose={() => setSaleModalOpen(false)}
           adId={ad.id}
+          adCode={ad.adCode}
           adTitle={ad.title}
           sellerId={ad.sellerId}
           sellerName={ad.sellerName}

@@ -32,6 +32,11 @@ export default function AdCard({ ad }: { ad: Ad }) {
       </div>
       <div className="flex flex-col gap-0.5 p-2.5">
         <h3 className="line-clamp-1 text-sm font-bold text-brand-bg-dark">{ad.title}</h3>
+        {ad.adCode && (
+          <p className="text-[10px] text-black/35">
+            رقم الإعلان: <bdi>{ad.adCode}</bdi>
+          </p>
+        )}
         <p className="line-clamp-1 text-xs text-black/50">
           {CATEGORY_LABELS[category]} • {ad.region}
         </p>

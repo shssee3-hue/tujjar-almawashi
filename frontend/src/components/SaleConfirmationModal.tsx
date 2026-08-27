@@ -16,6 +16,7 @@ export default function SaleConfirmationModal({
   open,
   onClose,
   adId,
+  adCode,
   adTitle,
   sellerId,
   sellerName,
@@ -24,6 +25,7 @@ export default function SaleConfirmationModal({
   open: boolean;
   onClose: () => void;
   adId: string;
+  adCode?: string;
   adTitle: string;
   sellerId: string;
   sellerName: string;
@@ -76,6 +78,7 @@ export default function SaleConfirmationModal({
     try {
       await createCommission({
         adId,
+        ...(adCode ? { adCode } : {}),
         adTitle,
         sellerId,
         sellerName,
@@ -105,11 +108,18 @@ export default function SaleConfirmationModal({
         className="my-8 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-extrabold text-brand-primary">تم البيع</h3>
-          <button onClick={onClose} className="text-black/40 hover:text-black/70">
-            ✕
-          </button>
+        <div className="mb-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-extrabold text-brand-primary">تم البيع</h3>
+            <button onClick={onClose} className="text-black/40 hover:text-black/70">
+              ✕
+            </button>
+          </div>
+          {adCode && (
+            <p className="mt-0.5 text-xs text-black/40">
+              إعلان رقم: <bdi className="font-medium">{adCode}</bdi>
+            </p>
+          )}
         </div>
 
         {!settings ? (
