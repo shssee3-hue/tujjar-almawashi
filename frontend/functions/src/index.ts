@@ -8,144 +8,110 @@
  *     signed into (the whole point of "forgot password").
  *   - Deleting a DIFFERENT user's Firebase Auth account.
  *
- * OTP delivery/verification: delegated entirely to Authentica
- * (https://authentica.sa), a Saudi OTP-as-a-service platform — it
- * generates and checks the 6-digit code itself, so this project never
- * generates or stores the raw code. See authentica.ts for the adapter and
- * an important note on its (unverified-live) API shape. Requires a secret,
- * set via `firebase functions:secrets:set AUTHENTICA_API_KEY`.
+ * OTP delivery/verification: Firebase Phone Authentication (Google's own —
+ * no third-party SMS provider account needed). The client calls
+ * signInWithPhoneNumber()/confirmationResult.confirm() directly against
+ * Firebase; this file never generates, sends, or checks a raw code itself.
+ * See src/lib/passwordReset.ts and src/app/forgot-password/page.tsx on the
+ * client side for that part of the flow.
  */
 
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { defineSecret } from "firebase-functions/params";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
-import { sendOtp, verifyOtp, AuthenticaError } from "./authentica";
 
 initializeApp();
 const db = getFirestore();
 
-const AUTHENTICA_API_KEY = defineSecret("AUTHENTICA_API_KEY");
-
 const RESET_SESSION_TTL_MS = 3 * 60 * 1000; // 3 minutes, per spec
-const MAX_VERIFY_ATTEMPTS = 5; // defense-in-depth on top of Authentica's own limits
 
 /**
  * Step 1: seller enters their phone number on the "forgot password" page.
- * Looks the number up against users/{uid}.phoneNumber, then asks
- * Authentica to generate and text a 6-digit OTP to it.
+ * Looks the number up against users/{uid}.phoneNumber and opens a reset
+ * session — the client sends the actual SMS itself right after this
+ * succeeds, via Firebase Phone Auth (signInWithPhoneNumber), which needs
+ * no server-side involvement at all.
  */
-export const requestPasswordResetOtp = onCall(
-  { secrets: [AUTHENTICA_API_KEY], region: "us-central1" },
-  async (request) => {
-    const phone = String(request.data?.phone || "").trim();
-    if (!phone) {
-      throw new HttpsError("invalid-argument", "يرجى إدخال رقم الجوال");
-    }
-
-    const usersSnap = await db
-      .collection("users")
-      .where("phoneNumber", "==", phone)
-      .limit(1)
-      .get();
-    if (usersSnap.empty) {
-      throw new HttpsError("not-found", "هذا الرقم غير مسجّل في المنصة");
-    }
-    const userDoc = usersSnap.docs[0];
-
-    // Invalidate any earlier still-pending reset sessions for this number so
-    // only the most recently requested one can ever be completed.
-    const pendingSnap = await db
-      .collection("password_resets")
-      .where("phone", "==", phone)
-      .where("used", "==", false)
-      .get();
-    await Promise.all(pendingSnap.docs.map((d) => d.ref.update({ used: true })));
-
-    try {
-      await sendOtp(AUTHENTICA_API_KEY.value(), phone);
-    } catch (err) {
-      throw new HttpsError(
-        "internal",
-        err instanceof AuthenticaError ? err.message : "تعذر إرسال رمز التحقق"
-      );
-    }
-
-    const createdAt = Date.now();
-    const expiresAt = createdAt + RESET_SESSION_TTL_MS;
-    const resetRef = await db.collection("password_resets").add({
-      phone,
-      uid: userDoc.id,
-      createdAt,
-      expiresAt,
-      used: false,
-      verified: false,
-      attempts: 0,
-    });
-
-    return { resetId: resetRef.id, expiresAt };
+export const startPhoneReset = onCall({ region: "us-central1" }, async (request) => {
+  const phone = String(request.data?.phone || "").trim();
+  if (!phone) {
+    throw new HttpsError("invalid-argument", "يرجى إدخال رقم الجوال");
   }
-);
+
+  const usersSnap = await db
+    .collection("users")
+    .where("phoneNumber", "==", phone)
+    .limit(1)
+    .get();
+  if (usersSnap.empty) {
+    throw new HttpsError("not-found", "هذا الرقم غير مسجّل في المنصة");
+  }
+  const userDoc = usersSnap.docs[0];
+
+  // Invalidate any earlier still-pending reset sessions for this number so
+  // only the most recently requested one can ever be completed.
+  const pendingSnap = await db
+    .collection("password_resets")
+    .where("phone", "==", phone)
+    .where("used", "==", false)
+    .get();
+  await Promise.all(pendingSnap.docs.map((d) => d.ref.update({ used: true })));
+
+  const createdAt = Date.now();
+  const expiresAt = createdAt + RESET_SESSION_TTL_MS;
+  const resetRef = await db.collection("password_resets").add({
+    phone,
+    uid: userDoc.id,
+    createdAt,
+    expiresAt,
+    used: false,
+    verified: false,
+  });
+
+  return { resetId: resetRef.id, expiresAt };
+});
 
 /**
- * Step 2: seller enters the 6-digit code. It's checked against Authentica
- * (which generated it in step 1), never against anything stored here. On
- * success, marks the record "verified" (not yet "used" — that only happens
- * once the password is actually changed) so step 3 doesn't need the code
- * again.
+ * Step 2: after the client itself confirms the 6-digit code with Firebase
+ * Phone Auth (confirmationResult.confirm(code)), it calls this function —
+ * now authenticated as a temporary phone-credential Firebase user, whose ID
+ * token carries a verified `phone_number` claim straight from Google. This
+ * cross-checks that claim against the reset session before marking it
+ * verified, so a phone verified for one session can't complete a different
+ * (or already-expired) one.
  */
-export const verifyPasswordResetOtp = onCall(
-  { secrets: [AUTHENTICA_API_KEY], region: "us-central1" },
-  async (request) => {
-    const resetId = String(request.data?.resetId || "");
-    const otp = String(request.data?.otp || "");
-    if (!resetId || !otp) {
-      throw new HttpsError("invalid-argument", "بيانات غير مكتملة");
-    }
-
-    const ref = db.collection("password_resets").doc(resetId);
-    const snap = await ref.get();
-    if (!snap.exists) {
-      throw new HttpsError("not-found", "طلب غير صالح، يرجى طلب رمز جديد");
-    }
-    const data = snap.data() as {
-      phone: string;
-      used: boolean;
-      verified: boolean;
-      expiresAt: number;
-      attempts: number;
-    };
-
-    if (data.used) {
-      throw new HttpsError("failed-precondition", "انتهت صلاحية الرمز، يرجى طلب رمز جديد");
-    }
-    if (Date.now() > data.expiresAt) {
-      throw new HttpsError("deadline-exceeded", "انتهت صلاحية الرمز، يرجى طلب رمز جديد");
-    }
-    if (data.attempts >= MAX_VERIFY_ATTEMPTS) {
-      await ref.update({ used: true });
-      throw new HttpsError("resource-exhausted", "محاولات كثيرة، يرجى طلب رمز جديد");
-    }
-
-    try {
-      await verifyOtp(AUTHENTICA_API_KEY.value(), data.phone, otp);
-    } catch (err) {
-      if (err instanceof AuthenticaError && err.kind === "expired") {
-        await ref.update({ used: true });
-        throw new HttpsError("deadline-exceeded", err.message);
-      }
-      await ref.update({ attempts: (data.attempts || 0) + 1 });
-      throw new HttpsError(
-        "invalid-argument",
-        err instanceof AuthenticaError ? err.message : "الرمز غير صحيح"
-      );
-    }
-
-    await ref.update({ verified: true });
-    return { success: true };
+export const completePhoneReset = onCall({ region: "us-central1" }, async (request) => {
+  const resetId = String(request.data?.resetId || "");
+  if (!resetId) {
+    throw new HttpsError("invalid-argument", "بيانات غير مكتملة");
   }
-);
+  const verifiedPhone = request.auth?.token?.phone_number;
+  if (!request.auth || !verifiedPhone) {
+    throw new HttpsError("unauthenticated", "يجب التحقق من رقم الجوال أولًا");
+  }
+
+  const ref = db.collection("password_resets").doc(resetId);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    throw new HttpsError("not-found", "طلب غير صالح، يرجى طلب رمز جديد");
+  }
+  const data = snap.data() as { phone: string; used: boolean; expiresAt: number };
+
+  if (data.used) {
+    throw new HttpsError("failed-precondition", "انتهت صلاحية الرمز، يرجى طلب رمز جديد");
+  }
+  if (Date.now() > data.expiresAt) {
+    await ref.update({ used: true });
+    throw new HttpsError("deadline-exceeded", "انتهت صلاحية الرمز، يرجى طلب رمز جديد");
+  }
+  if (data.phone !== verifiedPhone) {
+    throw new HttpsError("permission-denied", "رقم الجوال المتحقق منه لا يطابق هذا الطلب");
+  }
+
+  await ref.update({ verified: true });
+  return { success: true };
+});
 
 /**
  * Step 3: seller sets their new password. Requires a resetId that was

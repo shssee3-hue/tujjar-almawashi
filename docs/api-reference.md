@@ -256,22 +256,24 @@ Firebase Authentication — Email/Password. الدوال: `registerUser`, `login
 
 ## password_resets
 
-سجلات جلسة "نسيت كلمة المرور" عبر رقم الجوال
-(`/forgot-password` → `/forgot-password/verify` → `/forgot-password/reset`).
-كل الحقول والمنطق يعيش في Cloud Functions (`frontend/functions/src/index.ts`)
-— لا يوجد أي كود عميل يقرأ أو يكتب هذه المجموعة مباشرة. **الرمز نفسه (OTP)
-لا يُخزَّن هنا إطلاقًا** — توليده والتحقق منه بالكامل مفوَّض لـ Authentica
-(راجع `functions/src/authentica.ts`)، فهذا المستند يتتبّع فقط "جلسة إعادة
-التعيين" المرتبطة برقم/حساب معيّن.
+سجلات جلسة "نسيت كلمة المرور" عبر رقم الجوال — تدفق ذو خطوة واحدة في
+الواجهة الآن (`/forgot-password`، حالات داخلية: phone → otp → reset، بدل
+ثلاث صفحات منفصلة كما كان سابقًا، لتفادي فقدان حالة `ConfirmationResult`
+عبر تنقّل بين صفحات). كل الحقول والمنطق يعيش في Cloud Functions
+(`frontend/functions/src/index.ts`) — لا يوجد أي كود عميل يقرأ أو يكتب هذه
+المجموعة مباشرة. **الرمز نفسه (OTP) لا يُخزَّن هنا إطلاقًا ولا يمرّ على أي
+خادم من عندنا أصلًا** — التوليد والإرسال والتحقق بالكامل عبر **Firebase
+Phone Authentication** (ميزة Google الأصلية، لا مزوّد SMS خارجي ولا حساب
+شركة ثالثة)، فهذا المستند يتتبّع فقط "جلسة إعادة التعيين" المرتبطة
+برقم/حساب معيّن.
 
 | الحقل | النوع | ملاحظات |
 |---|---|---|
 | phone | string | |
 | uid | string | معرّف حساب Firebase Auth المطابق — يُستخدم لاحقًا في `admin.auth().updateUser()` |
 | createdAt, expiresAt | number | صلاحية الجلسة 3 دقائق (`RESET_SESSION_TTL_MS`) |
-| used | boolean | يُضبط `true` إمّا بعد نجاح تغيير كلمة المرور، أو فور إنشاء طلب أحدث لنفس الرقم (يُبطل كل الطلبات السابقة غير المستخدمة)، أو إذا ردّت Authentica بأن الرمز منتهي |
-| verified | boolean | `true` بعد أن يؤكد Authentica صحة الرمز — شرط لازم قبل السماح بتغيير كلمة المرور في الخطوة التالية |
-| attempts | number | عدّاد محاولات خاطئة من جهتنا (دفاع إضافي فوق حدود Authentica نفسها)، يُبطل الطلب تلقائيًا (`used=true`) بعد 5 محاولات |
+| used | boolean | يُضبط `true` إمّا بعد نجاح تغيير كلمة المرور، أو فور إنشاء طلب أحدث لنفس الرقم (يُبطل كل الطلبات السابقة غير المستخدمة)، أو عند انتهاء صلاحية الجلسة |
+| verified | boolean | `true` بعد أن يتحقق العميل من الرمز مباشرة مع Firebase (`confirmationResult.confirm()`) ثم يُبلّغ الخادم بذلك — شرط لازم قبل السماح بتغيير كلمة المرور في الخطوة التالية |
 
 **الصلاحيات:** `allow read, write: if false;` في `firestore.rules` — القراءة/الكتابة
 حصرًا عبر Admin SDK داخل Cloud Functions (تتجاوز قواعد الأمان أصلًا)، فلا حاجة
@@ -279,33 +281,34 @@ Firebase Authentication — Email/Password. الدوال: `registerUser`, `login
 يُمنح عبره وصولًا.
 
 **التدفق الكامل:**
-1. `requestPasswordResetOtp({ phone })` — يبحث عن `users` حيث `phoneNumber == phone`؛ إن لم يوجد يرمي `not-found` ("هذا الرقم غير مسجّل في المنصة"). يُبطل أي طلبات سابقة غير مستخدمة لنفس الرقم، يطلب من Authentica توليد وإرسال الرمز (`authentica.sendOtp`)، وينشئ سجل جلسة. يُعيد `{ resetId, expiresAt }` فقط.
-2. `verifyPasswordResetOtp({ resetId, otp })` — يتحقق من عدم انتهاء الجلسة وعدم استخدامها، ثم يمرّر الرمز لـ Authentica نفسه للتحقق (`authentica.verifyOtp`) — لا مقارنة محلية لأي رمز مخزَّن لأنه غير موجود أصلًا؛ رفض Authentica ⇐ `invalid-argument` مع زيادة `attempts`، وانتهاء الصلاحية من جهة Authentica ⇐ `deadline-exceeded` مع `used=true`. عند النجاح يضبط `verified=true` فقط (وليس `used`، حتى لا يُهدر المحاولة إن لم يُكمل المستخدم الخطوة التالية).
-3. `resetPasswordWithOtp({ resetId, newPassword })` — يتطلب `verified==true && used==false`؛ يتحقق من قوة كلمة المرور (6 خانات فأكثر، أرقام وحروف) على الخادم أيضًا وليس فقط في الواجهة، يستدعي `admin.auth().updateUser(uid, { password })`، ثم يضبط `used=true`.
+1. `startPhoneReset({ phone })` (Cloud Function) — يبحث عن `users` حيث `phoneNumber == phone`؛ إن لم يوجد يرمي `not-found` ("هذا الرقم غير مسجّل في المنصة"). يُبطل أي طلبات سابقة غير مستخدمة لنفس الرقم، وينشئ سجل جلسة. يُعيد `{ resetId, expiresAt }` فقط — لا يرسل أي رسالة بنفسه.
+2. العميل يستدعي `signInWithPhoneNumber()` مباشرة (Firebase Auth SDK، عبر reCAPTCHA غير مرئي مثبَّت في `#recaptcha-container`) — **هذا ما يرسل الرسالة النصية فعليًا**، بنية Google التحتية مباشرة، بلا أي كود خادم من عندنا.
+3. المستخدم يُدخل الرمز؛ العميل يستدعي `confirmationResult.confirm(otp)` — Firebase نفسها تتحقق من الرمز (ترمي `auth/invalid-verification-code` أو `auth/code-expired` عند الخطأ). عند النجاح يصبح العميل موقّعًا دخوله مؤقتًا كهوية "phone-auth" تحمل مطالبة `phone_number` موثّقة من Google.
+4. العميل يستدعي `completePhoneReset({ resetId })` (Cloud Function) وهو بهذه الهوية المؤقتة — يقارن `request.auth.token.phone_number` مع رقم جلسة `resetId` (يمنع إكمال جلسة برقم تم التحقق من رقم مختلف)، ويتحقق من عدم الانتهاء/الاستخدام، ثم يضبط `verified=true`. العميل بعدها **يسجّل خروجه فورًا** من هذه الهوية المؤقتة (`signOut`) — فهي لا تُستخدم إلا كوسيلة لإثبات امتلاك الرقم، وليست جلسة دخول حقيقية.
+5. `resetPasswordWithOtp({ resetId, newPassword })` — يتطلب `verified==true && used==false`؛ يتحقق من قوة كلمة المرور (6 خانات فأكثر، أرقام وحروف) على الخادم أيضًا وليس فقط في الواجهة، يستدعي `admin.auth().updateUser(uid, { password })`، ثم يضبط `used=true`.
 
-**الدوال (عميل):** `requestPasswordResetOtp`, `verifyPasswordResetOtp`, `resetPasswordWithOtp`, `passwordResetErrorMessage` — في `frontend/src/lib/passwordReset.ts`، تستدعي الدوال أعلاه عبر `httpsCallable`.
+**الدوال (عميل):** `startPhoneReset`, `sendPhoneOtp`, `confirmPhoneOtp`, `resetPasswordWithOtp`, `passwordResetErrorMessage` — في `frontend/src/lib/passwordReset.ts`.
 
 ## Cloud Functions (`frontend/functions/`)
 
 أول كود خادم (server-side / Admin SDK) في هذا المشروع — كل شيء آخر يتصل
 بـ Firestore مباشرة من المتصفح. أربع دوال `onCall` في
-`frontend/functions/src/index.ts`، منطقة `us-central1`:
+`frontend/functions/src/index.ts`، منطقة `us-central1`، **بدون أي أسرار
+مطلوبة** (لا مزوّد SMS خارجي بعد التحول لـ Firebase Phone Auth):
 
 | الدالة | من يستدعيها | الغرض |
 |---|---|---|
-| `requestPasswordResetOtp` | أي زائر (غير مسجّل دخول) | الخطوة 1 من نسيان كلمة المرور |
-| `verifyPasswordResetOtp` | أي زائر | الخطوة 2 |
-| `resetPasswordWithOtp` | أي زائر | الخطوة 3 — التغيير الفعلي لكلمة المرور عبر Admin SDK |
+| `startPhoneReset` | أي زائر (غير مسجّل دخول) | الخطوة 1 من نسيان كلمة المرور — تحقق من الرقم + فتح جلسة |
+| `completePhoneReset` | هوية phone-auth مؤقتة (بعد نجاح `confirm()`) | تصديق الجلسة بعد تحقق Firebase نفسها من الرمز |
+| `resetPasswordWithOtp` | أي زائر | التغيير الفعلي لكلمة المرور عبر Admin SDK |
 | `deleteUserCompletely` | owner فقط (يتحقق من `role` داخليًا) | حذف مستخدم نهائيًا من Firestore و Auth معًا |
 
-**مزوّد OTP: Authentica** (`functions/src/authentica.ts`) — منصة سعودية
-متخصصة في التحقق عبر OTP (وليست مزوّد SMS عام)؛ تولّد الرمز وتتحقق منه على
-خادمها هي، فهذا المشروع لا يولّد أو يخزّن الرمز الفعلي إطلاقًا. **تنبيه:**
-لم يتوفر حساب Authentica فعلي وقت كتابة هذا الكود، فمسارات الـ API وأسماء
-الحقول في `authentica.ts` هي أفضل تخمين مبني على نموذج "OTP-as-a-service"
-المعلن، وليست مُتحقَّقة حيًّا — راجعها مقابل توثيق حسابك الفعلي عند توفره.
-يتطلب السرّ `AUTHENTICA_API_KEY`.
+**إعدادات Firebase Auth المفعّلة برمجيًا** (عبر Identity Platform Admin API
+مباشرة، بلا أي نقرة يدوية في Console): مزوّد الدخول بالجوال (`signIn.phoneNumber.enabled`)،
+وسياسة مناطق SMS (`smsRegionConfig.allowlistOnly.allowedRegions`) مضبوطة
+على دول الخليج (SA, AE, KW, QA, BH, OM) — كانت فارغة افتراضيًا، وقائمة فارغة
+تعني حظر كل الأرقام.
 
 **يتطلب خطة Blaze (الدفع حسب الاستخدام)** على مشروع Firebase — Cloud Functions
-لا تعمل على الخطة المجانية (Spark) إطلاقًا. راجع `docs/cloud-functions-setup.md`
-للخطوات الكاملة.
+لا تعمل على الخطة المجانية (Spark) إطلاقًا، بصرف النظر عن عدم وجود أسرار
+مطلوبة الآن. راجع `docs/cloud-functions-setup.md`.
