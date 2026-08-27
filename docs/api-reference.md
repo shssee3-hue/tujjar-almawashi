@@ -256,20 +256,22 @@ Firebase Authentication — Email/Password. الدوال: `registerUser`, `login
 
 ## password_resets
 
-سجلات رمز التحقق (OTP) لتدفق "نسيت كلمة المرور" عبر رقم الجوال
+سجلات جلسة "نسيت كلمة المرور" عبر رقم الجوال
 (`/forgot-password` → `/forgot-password/verify` → `/forgot-password/reset`).
 كل الحقول والمنطق يعيش في Cloud Functions (`frontend/functions/src/index.ts`)
-— لا يوجد أي كود عميل يقرأ أو يكتب هذه المجموعة مباشرة.
+— لا يوجد أي كود عميل يقرأ أو يكتب هذه المجموعة مباشرة. **الرمز نفسه (OTP)
+لا يُخزَّن هنا إطلاقًا** — توليده والتحقق منه بالكامل مفوَّض لـ Authentica
+(راجع `functions/src/authentica.ts`)، فهذا المستند يتتبّع فقط "جلسة إعادة
+التعيين" المرتبطة برقم/حساب معيّن.
 
 | الحقل | النوع | ملاحظات |
 |---|---|---|
 | phone | string | |
-| otp | string | 6 أرقام، عشوائي (`crypto.randomInt`) |
 | uid | string | معرّف حساب Firebase Auth المطابق — يُستخدم لاحقًا في `admin.auth().updateUser()` |
-| createdAt, expiresAt | number | صلاحية 3 دقائق (`OTP_TTL_MS`) |
-| used | boolean | يُضبط `true` إمّا بعد نجاح تغيير كلمة المرور، أو فور إنشاء طلب أحدث لنفس الرقم (يُبطل كل الطلبات السابقة غير المستخدمة) |
-| verified | boolean | `true` بعد التحقق الناجح من الرمز — شرط لازم قبل السماح بتغيير كلمة المرور في الخطوة التالية |
-| attempts | number | عدّاد محاولات خاطئة، يُبطل الطلب تلقائيًا (`used=true`) بعد 5 محاولات |
+| createdAt, expiresAt | number | صلاحية الجلسة 3 دقائق (`RESET_SESSION_TTL_MS`) |
+| used | boolean | يُضبط `true` إمّا بعد نجاح تغيير كلمة المرور، أو فور إنشاء طلب أحدث لنفس الرقم (يُبطل كل الطلبات السابقة غير المستخدمة)، أو إذا ردّت Authentica بأن الرمز منتهي |
+| verified | boolean | `true` بعد أن يؤكد Authentica صحة الرمز — شرط لازم قبل السماح بتغيير كلمة المرور في الخطوة التالية |
+| attempts | number | عدّاد محاولات خاطئة من جهتنا (دفاع إضافي فوق حدود Authentica نفسها)، يُبطل الطلب تلقائيًا (`used=true`) بعد 5 محاولات |
 
 **الصلاحيات:** `allow read, write: if false;` في `firestore.rules` — القراءة/الكتابة
 حصرًا عبر Admin SDK داخل Cloud Functions (تتجاوز قواعد الأمان أصلًا)، فلا حاجة
@@ -277,8 +279,8 @@ Firebase Authentication — Email/Password. الدوال: `registerUser`, `login
 يُمنح عبره وصولًا.
 
 **التدفق الكامل:**
-1. `requestPasswordResetOtp({ phone })` — يبحث عن `users` حيث `phoneNumber == phone`؛ إن لم يوجد يرمي `not-found` ("هذا الرقم غير مسجّل في المنصة"). يُبطل أي طلبات سابقة غير مستخدمة لنفس الرقم، يولّد الرمز، يخزّنه، ويرسله عبر SMS (راجع `docs/cloud-functions-setup.md` لإعداد مزوّد الرسائل). يُعيد `{ resetId, expiresAt }` فقط — الرمز نفسه لا يُعاد للعميل أبدًا.
-2. `verifyPasswordResetOtp({ resetId, otp })` — يتحقق من عدم الانتهاء (`deadline-exceeded`)، عدم الاستخدام، وتطابق الرمز (`invalid-argument` عند الخطأ، مع زيادة `attempts`)؛ عند النجاح يضبط `verified=true` فقط (وليس `used`، حتى لا يُهدر المحاولة إن لم يُكمل المستخدم الخطوة التالية).
+1. `requestPasswordResetOtp({ phone })` — يبحث عن `users` حيث `phoneNumber == phone`؛ إن لم يوجد يرمي `not-found` ("هذا الرقم غير مسجّل في المنصة"). يُبطل أي طلبات سابقة غير مستخدمة لنفس الرقم، يطلب من Authentica توليد وإرسال الرمز (`authentica.sendOtp`)، وينشئ سجل جلسة. يُعيد `{ resetId, expiresAt }` فقط.
+2. `verifyPasswordResetOtp({ resetId, otp })` — يتحقق من عدم انتهاء الجلسة وعدم استخدامها، ثم يمرّر الرمز لـ Authentica نفسه للتحقق (`authentica.verifyOtp`) — لا مقارنة محلية لأي رمز مخزَّن لأنه غير موجود أصلًا؛ رفض Authentica ⇐ `invalid-argument` مع زيادة `attempts`، وانتهاء الصلاحية من جهة Authentica ⇐ `deadline-exceeded` مع `used=true`. عند النجاح يضبط `verified=true` فقط (وليس `used`، حتى لا يُهدر المحاولة إن لم يُكمل المستخدم الخطوة التالية).
 3. `resetPasswordWithOtp({ resetId, newPassword })` — يتطلب `verified==true && used==false`؛ يتحقق من قوة كلمة المرور (6 خانات فأكثر، أرقام وحروف) على الخادم أيضًا وليس فقط في الواجهة، يستدعي `admin.auth().updateUser(uid, { password })`، ثم يضبط `used=true`.
 
 **الدوال (عميل):** `requestPasswordResetOtp`, `verifyPasswordResetOtp`, `resetPasswordWithOtp`, `passwordResetErrorMessage` — في `frontend/src/lib/passwordReset.ts`، تستدعي الدوال أعلاه عبر `httpsCallable`.
@@ -296,6 +298,14 @@ Firebase Authentication — Email/Password. الدوال: `registerUser`, `login
 | `resetPasswordWithOtp` | أي زائر | الخطوة 3 — التغيير الفعلي لكلمة المرور عبر Admin SDK |
 | `deleteUserCompletely` | owner فقط (يتحقق من `role` داخليًا) | حذف مستخدم نهائيًا من Firestore و Auth معًا |
 
+**مزوّد OTP: Authentica** (`functions/src/authentica.ts`) — منصة سعودية
+متخصصة في التحقق عبر OTP (وليست مزوّد SMS عام)؛ تولّد الرمز وتتحقق منه على
+خادمها هي، فهذا المشروع لا يولّد أو يخزّن الرمز الفعلي إطلاقًا. **تنبيه:**
+لم يتوفر حساب Authentica فعلي وقت كتابة هذا الكود، فمسارات الـ API وأسماء
+الحقول في `authentica.ts` هي أفضل تخمين مبني على نموذج "OTP-as-a-service"
+المعلن، وليست مُتحقَّقة حيًّا — راجعها مقابل توثيق حسابك الفعلي عند توفره.
+يتطلب السرّ `AUTHENTICA_API_KEY`.
+
 **يتطلب خطة Blaze (الدفع حسب الاستخدام)** على مشروع Firebase — Cloud Functions
 لا تعمل على الخطة المجانية (Spark) إطلاقًا. راجع `docs/cloud-functions-setup.md`
-للخطوات الكاملة (تفعيل Blaze، إعداد مزوّد الرسائل النصية، النشر).
+للخطوات الكاملة.

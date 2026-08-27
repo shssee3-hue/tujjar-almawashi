@@ -8,68 +8,36 @@
  *     signed into (the whole point of "forgot password").
  *   - Deleting a DIFFERENT user's Firebase Auth account.
  *
- * SMS delivery: wired up for Unifonic (https://unifonic.com), the most
- * commonly used SMS provider for Saudi numbers — good local delivery,
- * Arabic support, a straightforward REST API. Requires two secrets, set via
- * `firebase functions:secrets:set UNIFONIC_APP_SID` and
- * `firebase functions:secrets:set UNIFONIC_SENDER_ID` (see the setup notes
- * in the project's README/report for exactly how to get these from a
- * Unifonic account). Until both secrets are set, sendOtpSms() throws a
- * clear "SMS not configured" error rather than silently pretending to send.
+ * OTP delivery/verification: delegated entirely to Authentica
+ * (https://authentica.sa), a Saudi OTP-as-a-service platform — it
+ * generates and checks the 6-digit code itself, so this project never
+ * generates or stores the raw code. See authentica.ts for the adapter and
+ * an important note on its (unverified-live) API shape. Requires a secret,
+ * set via `firebase functions:secrets:set AUTHENTICA_API_KEY`.
  */
 
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
-import { randomInt } from "crypto";
+import { sendOtp, verifyOtp, AuthenticaError } from "./authentica";
 
 initializeApp();
 const db = getFirestore();
 
-const UNIFONIC_APP_SID = defineSecret("UNIFONIC_APP_SID");
-const UNIFONIC_SENDER_ID = defineSecret("UNIFONIC_SENDER_ID");
+const AUTHENTICA_API_KEY = defineSecret("AUTHENTICA_API_KEY");
 
-const OTP_TTL_MS = 3 * 60 * 1000; // 3 minutes, per spec
-const MAX_VERIFY_ATTEMPTS = 5;
-
-function sixDigitOtp(): string {
-  return String(randomInt(0, 1_000_000)).padStart(6, "0");
-}
-
-async function sendOtpSms(appSid: string, senderId: string, phone: string, otp: string) {
-  if (!appSid || !senderId) {
-    throw new HttpsError(
-      "failed-precondition",
-      "لم يتم إعداد مزوّد الرسائل النصية بعد. راجع الإدارة."
-    );
-  }
-  const body = new URLSearchParams({
-    AppSid: appSid,
-    SenderID: senderId,
-    Body: `رمز التحقق الخاص بك في تجّار المواشي: ${otp}\nصالح لمدة 3 دقائق.`,
-    Recipient: phone,
-  });
-  const res = await fetch("https://el.cloud.unifonic.com/rest/SMS/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new HttpsError("internal", `تعذر إرسال الرسالة النصية (${res.status}): ${text}`);
-  }
-}
+const RESET_SESSION_TTL_MS = 3 * 60 * 1000; // 3 minutes, per spec
+const MAX_VERIFY_ATTEMPTS = 5; // defense-in-depth on top of Authentica's own limits
 
 /**
  * Step 1: seller enters their phone number on the "forgot password" page.
- * Looks the number up against users/{uid}.phoneNumber, generates a 6-digit
- * OTP, stores it in password_resets, and texts it. Never returns the OTP
- * itself to the client.
+ * Looks the number up against users/{uid}.phoneNumber, then asks
+ * Authentica to generate and text a 6-digit OTP to it.
  */
 export const requestPasswordResetOtp = onCall(
-  { secrets: [UNIFONIC_APP_SID, UNIFONIC_SENDER_ID], region: "us-central1" },
+  { secrets: [AUTHENTICA_API_KEY], region: "us-central1" },
   async (request) => {
     const phone = String(request.data?.phone || "").trim();
     if (!phone) {
@@ -86,24 +54,28 @@ export const requestPasswordResetOtp = onCall(
     }
     const userDoc = usersSnap.docs[0];
 
-    // Invalidate any earlier still-pending OTPs for this number so only the
-    // most recent request can ever be verified.
+    // Invalidate any earlier still-pending reset sessions for this number so
+    // only the most recently requested one can ever be completed.
     const pendingSnap = await db
       .collection("password_resets")
       .where("phone", "==", phone)
       .where("used", "==", false)
       .get();
-    await Promise.all(
-      pendingSnap.docs.map((d) => d.ref.update({ used: true }))
-    );
+    await Promise.all(pendingSnap.docs.map((d) => d.ref.update({ used: true })));
 
-    const otp = sixDigitOtp();
+    try {
+      await sendOtp(AUTHENTICA_API_KEY.value(), phone);
+    } catch (err) {
+      throw new HttpsError(
+        "internal",
+        err instanceof AuthenticaError ? err.message : "تعذر إرسال رمز التحقق"
+      );
+    }
+
     const createdAt = Date.now();
-    const expiresAt = createdAt + OTP_TTL_MS;
-
+    const expiresAt = createdAt + RESET_SESSION_TTL_MS;
     const resetRef = await db.collection("password_resets").add({
       phone,
-      otp,
       uid: userDoc.id,
       createdAt,
       expiresAt,
@@ -112,60 +84,68 @@ export const requestPasswordResetOtp = onCall(
       attempts: 0,
     });
 
-    await sendOtpSms(
-      UNIFONIC_APP_SID.value(),
-      UNIFONIC_SENDER_ID.value(),
-      phone,
-      otp
-    );
-
     return { resetId: resetRef.id, expiresAt };
   }
 );
 
 /**
- * Step 2: seller enters the 6-digit code. On success, marks the record
- * "verified" (but not yet "used" — that only happens once the password is
- * actually changed) so the next step doesn't need the phone/OTP again.
+ * Step 2: seller enters the 6-digit code. It's checked against Authentica
+ * (which generated it in step 1), never against anything stored here. On
+ * success, marks the record "verified" (not yet "used" — that only happens
+ * once the password is actually changed) so step 3 doesn't need the code
+ * again.
  */
-export const verifyPasswordResetOtp = onCall({ region: "us-central1" }, async (request) => {
-  const resetId = String(request.data?.resetId || "");
-  const otp = String(request.data?.otp || "");
-  if (!resetId || !otp) {
-    throw new HttpsError("invalid-argument", "بيانات غير مكتملة");
-  }
+export const verifyPasswordResetOtp = onCall(
+  { secrets: [AUTHENTICA_API_KEY], region: "us-central1" },
+  async (request) => {
+    const resetId = String(request.data?.resetId || "");
+    const otp = String(request.data?.otp || "");
+    if (!resetId || !otp) {
+      throw new HttpsError("invalid-argument", "بيانات غير مكتملة");
+    }
 
-  const ref = db.collection("password_resets").doc(resetId);
-  const snap = await ref.get();
-  if (!snap.exists) {
-    throw new HttpsError("not-found", "طلب غير صالح، يرجى طلب رمز جديد");
-  }
-  const data = snap.data() as {
-    otp: string;
-    used: boolean;
-    verified: boolean;
-    expiresAt: number;
-    attempts: number;
-  };
+    const ref = db.collection("password_resets").doc(resetId);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      throw new HttpsError("not-found", "طلب غير صالح، يرجى طلب رمز جديد");
+    }
+    const data = snap.data() as {
+      phone: string;
+      used: boolean;
+      verified: boolean;
+      expiresAt: number;
+      attempts: number;
+    };
 
-  if (data.used) {
-    throw new HttpsError("failed-precondition", "انتهت صلاحية الرمز، يرجى طلب رمز جديد");
-  }
-  if (Date.now() > data.expiresAt) {
-    throw new HttpsError("deadline-exceeded", "انتهت صلاحية الرمز، يرجى طلب رمز جديد");
-  }
-  if (data.attempts >= MAX_VERIFY_ATTEMPTS) {
-    await ref.update({ used: true });
-    throw new HttpsError("resource-exhausted", "محاولات كثيرة، يرجى طلب رمز جديد");
-  }
-  if (data.otp !== otp) {
-    await ref.update({ attempts: FieldValue.increment(1) });
-    throw new HttpsError("invalid-argument", "الرمز غير صحيح");
-  }
+    if (data.used) {
+      throw new HttpsError("failed-precondition", "انتهت صلاحية الرمز، يرجى طلب رمز جديد");
+    }
+    if (Date.now() > data.expiresAt) {
+      throw new HttpsError("deadline-exceeded", "انتهت صلاحية الرمز، يرجى طلب رمز جديد");
+    }
+    if (data.attempts >= MAX_VERIFY_ATTEMPTS) {
+      await ref.update({ used: true });
+      throw new HttpsError("resource-exhausted", "محاولات كثيرة، يرجى طلب رمز جديد");
+    }
 
-  await ref.update({ verified: true });
-  return { success: true };
-});
+    try {
+      await verifyOtp(AUTHENTICA_API_KEY.value(), data.phone, otp);
+    } catch (err) {
+      if (err instanceof AuthenticaError && err.kind === "expired") {
+        await ref.update({ used: true });
+        throw new HttpsError("deadline-exceeded", err.message);
+      }
+      await ref.update({ attempts: (data.attempts || 0) + 1 });
+      throw new HttpsError(
+        "invalid-argument",
+        err instanceof AuthenticaError ? err.message : "الرمز غير صحيح"
+      );
+    }
+
+    await ref.update({ verified: true });
+    return { success: true };
+  }
+);
 
 /**
  * Step 3: seller sets their new password. Requires a resetId that was
@@ -239,11 +219,16 @@ export const deleteUserCompletely = onCall({ region: "us-central1" }, async (req
   batch.delete(db.collection("users").doc(targetUid));
   await batch.commit();
 
-  await getAuth().deleteUser(targetUid).catch((err) => {
-    // The Firestore side is already gone at this point; surface the Auth
-    // failure clearly rather than silently reporting overall success.
-    throw new HttpsError("internal", `تم حذف بيانات المستخدم، لكن تعذر حذف حسابه من Auth: ${err.message}`);
-  });
+  await getAuth()
+    .deleteUser(targetUid)
+    .catch((err) => {
+      // The Firestore side is already gone at this point; surface the Auth
+      // failure clearly rather than silently reporting overall success.
+      throw new HttpsError(
+        "internal",
+        `تم حذف بيانات المستخدم، لكن تعذر حذف حسابه من Auth: ${err.message}`
+      );
+    });
 
   return { success: true };
 });
