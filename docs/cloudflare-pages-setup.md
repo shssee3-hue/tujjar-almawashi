@@ -31,17 +31,25 @@ Firebase Hosting يبقى شغّالًا كما هو — هذا نشر إضاف�
 ## 3) متغيّرات البيئة (Environment variables)
 
 قبل أول نشر، أضف هذه المتغيّرات في نفس صفحة إعدادات المشروع (Settings →
-Environment variables) — كلها قيم عامة (public) مضمّنة أصلًا في كود الموقع
-المنشور، وليست أسرارًا:
+Environment variables). القيم نفسها موجودة في `frontend/.env.local` عندك
+محليًا (غير مُتتبَّع بـ git)، أو من Firebase Console → Project settings →
+General → Your apps:
 
 ```
-NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyCBAP9nm7fTFOWTo3ql2uyFHXVGOmHRQqk
+NEXT_PUBLIC_FIREBASE_API_KEY=<من frontend/.env.local أو Firebase Console>
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=tujjar-almawashi.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=tujjar-almawashi
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=tujjar-almawashi.firebasestorage.app
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=342619861741
 NEXT_PUBLIC_FIREBASE_APP_ID=1:342619861741:web:585547ac51373fea6152e4
 ```
+
+> ملاحظة: مفتاح Firebase Web API (`NEXT_PUBLIC_FIREBASE_API_KEY`) هو أصلًا
+> قيمة عامة بتصميم Firebase نفسه — مضمّن حرفيًا في ملفات JS التي يحمّلها
+> متصفح أي زائر للموقع المنشور، والحماية الفعلية تأتي من قيود referrer على
+> المفتاح نفسه وقواعد أمان Firestore، لا من إخفائه. رغم هذا، تركنا القيمة
+> الفعلية خارج هذا الملف تفاديًا لتنبيهات فحص الأسرار الآلية (false positive
+> شائع مع مفاتيح Firebase تحديدًا).
 
 ## 4) انشر
 
