@@ -36,8 +36,14 @@ service cloud.firestore {
     // info via denormalized fields on the ad itself, not a users lookup).
     match /users/{userId} {
       allow read: if isOwner(userId) || isSystemOwner();
+      // rating/reportsCount/adsCount must start at their guaranteed initial
+      // value too — a direct API call (bypassing createUserProfile())
+      // could otherwise self-assign a fake 5-star rating from day one.
       allow create: if isOwner(userId)
-        && request.resource.data.role == "user";
+        && request.resource.data.role == "user"
+        && request.resource.data.rating == 0
+        && request.resource.data.reportsCount == 0
+        && request.resource.data.adsCount == 0;
       allow update: if isSystemOwner()
         || (isOwner(userId)
             // owners can edit their own profile but never escalate role/ban/rating/reportsCount.
@@ -72,6 +78,9 @@ service cloud.firestore {
       // impersonating a different seller identity (name/type/rating are
       // denormalized from the caller's own profile, so they're checked
       // against it rather than trusted as given).
+      // price/category are checked too — "offers" is deliberately excluded
+      // since it's a retired section no longer offered for new ads (existing
+      // ones keep working as-is; this only constrains new creates).
       allow create: if isSignedIn()
         && request.resource.data.sellerId == request.auth.uid
         && request.resource.data.sellerName == ownSellerProfile().name
@@ -81,6 +90,9 @@ service cloud.firestore {
         && request.resource.data.oathAccepted == true
         && request.resource.data.views == 0
         && request.resource.data.reportsCount == 0
+        && request.resource.data.price >= 0
+        && request.resource.data.category in
+            ["livestock", "feed", "equipment", "services", "transport"]
         && (!("featured" in request.resource.data) || request.resource.data.featured == false);
 
       // A non-admin owner may edit their own ad's content freely, but not
@@ -108,7 +120,16 @@ service cloud.firestore {
         // else — the only field allowed to change is "views", and only by
         // exactly +1 per call.
         || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(["views"])
-            && request.resource.data.views == resource.data.views + 1);
+            && request.resource.data.views == resource.data.views + 1)
+        // The report-count bump createReport() performs right after filing
+        // a report: any signed-in user (not just the seller/admin), scoped
+        // just as tightly — only "reportsCount", only +1 per call. Without
+        // this, a non-seller reporter's report doc saves fine but this
+        // follow-up write always failed, surfacing as a false "تعذر إرسال
+        // البلاغ" error and leaving the count permanently at 0.
+        || (isSignedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["reportsCount"])
+            && request.resource.data.reportsCount == resource.data.reportsCount + 1);
 
       // Permanent (hard) deletion is an owner-only "sensitive review" action;
       // everyone else removes an ad via update (status -> "deleted"), which
@@ -141,6 +162,9 @@ service cloud.firestore {
       allow create, update: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
         && ratingId == request.resource.data.adId + "_" + request.auth.uid
+        && request.resource.data.value is int
+        && request.resource.data.value >= 1
+        && request.resource.data.value <= 5
         && get(/databases/$(database)/documents/ads/$(request.resource.data.adId)).data.sellerId != request.auth.uid;
       allow delete: if isAdmin()
         || (isSignedIn() && resource.data.userId == request.auth.uid);
