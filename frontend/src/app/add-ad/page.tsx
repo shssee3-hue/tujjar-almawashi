@@ -67,6 +67,10 @@ function AddAdForm() {
   const [oathText, setOathText] = useState(
     "أقسم بالله العظيم أنني ملزم بنسبة الموقع 1.5% من قيمة البيع وتبقى بذمتي حتى أدفعها للموقع."
   );
+  // Fixed, admin-controlled notice text for the "خدمات"/"نقل مواشي" sections
+  // only — the user can never edit or clear it; it's read live from
+  // settings each time, same pattern as oathText above.
+  const [noticeText, setNoticeText] = useState("");
   // Admin-added breeds/services (/dashboard/breeds, /dashboard/services) —
   // merged into the option lists below so a new addition is selectable here
   // immediately, not just reflected on the admin page itself.
@@ -76,6 +80,7 @@ function AddAdForm() {
   useEffect(() => {
     getSiteSettings().then((s) => {
       if (s.oathText) setOathText(s.oathText);
+      setNoticeText(s.servicesTransportNoticeText || "");
     });
     listBreeds().then(setCustomBreeds).catch(() => {});
     listAdditionalServices().then(setCustomServices).catch(() => {});
@@ -129,6 +134,7 @@ function AddAdForm() {
 
   const isLivestock = category === "livestock";
   const isOtherSubCategory = subCategory === "أخرى";
+  const requiresNotice = category === "services" || category === "transport";
 
   function handleReview(e: React.FormEvent) {
     e.preventDefault();
@@ -143,6 +149,10 @@ function AddAdForm() {
       toast.error("يرجى تعبئة جميع الحقول المطلوبة");
       return;
     }
+    if (requiresNotice && !noticeText.trim()) {
+      toast.error("تعذّر تحميل النص الإلزامي لهذا القسم، يرجى إعادة المحاولة");
+      return;
+    }
     if (images.length === 0) {
       toast.error("يرجى إضافة صورة واحدة على الأقل");
       return;
@@ -155,6 +165,10 @@ function AddAdForm() {
     if (!firebaseUser || !profile) return;
     if (!oathAccepted) {
       toast.error("يجب الموافقة على الإقرار الإلزامي قبل نشر الإعلان");
+      return;
+    }
+    if (requiresNotice && !noticeText.trim()) {
+      toast.error("تعذّر تحميل النص الإلزامي لهذا القسم، يرجى إعادة المحاولة");
       return;
     }
     setSubmitting(true);
@@ -309,6 +323,15 @@ function AddAdForm() {
               <p className="whitespace-pre-line leading-relaxed text-black/70">{description}</p>
             </div>
 
+            {requiresNotice && (
+              <div className="mt-6 rounded-xl border border-black/10 bg-black/5 p-4">
+                <p className="mb-1 flex items-center gap-1.5 text-sm font-bold text-black/60">
+                  🔒 نص إلزامي
+                </p>
+                <p className="leading-relaxed text-black/70">{noticeText}</p>
+              </div>
+            )}
+
             <div className="mt-6 text-sm text-black/50">
               {showCallButton || showWhatsappButton ? (
                 <>
@@ -380,6 +403,21 @@ function AddAdForm() {
             ))}
           </select>
         </div>
+
+        {requiresNotice && (
+          <div>
+            <label className="mb-1 flex items-center gap-1.5 text-sm font-medium">
+              🔒 نص إلزامي — غير قابل للتعديل *
+            </label>
+            <div className="w-full rounded-xl border border-black/10 bg-black/5 px-4 py-2.5 leading-relaxed text-black/70">
+              {noticeText || "جاري تحميل النص..."}
+            </div>
+            <p className="mt-1 text-xs text-black/40">
+              هذا النص ثابت من إدارة المنصة ولا يمكن تعديله أو حذفه، وهو جزء
+              إلزامي من الإعلان في هذا القسم.
+            </p>
+          </div>
+        )}
 
         <div>
           <label className="mb-1 block text-sm font-medium">عنوان الإعلان *</label>

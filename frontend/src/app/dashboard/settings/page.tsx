@@ -122,6 +122,27 @@ function SettingsContent() {
           />
         </div>
 
+        <hr className="border-black/10" />
+        <h2 className="-mb-2 font-bold text-brand-bg-dark">
+          نص إلزامي — قسمي "خدمات" و"نقل مواشي"
+        </h2>
+        <p className="-mt-3 text-xs text-black/40">
+          يظهر كخانة ثابتة غير قابلة للتعديل داخل نموذج إضافة الإعلان، فقط
+          عند اختيار أحد هذين القسمين — لا يقدر المستخدم يمسحه أو يغيّره،
+          ولا يمكن نشر الإعلان بدونه.
+        </p>
+        <div>
+          <label className="mb-1 block text-sm font-medium">النص</label>
+          <textarea
+            rows={5}
+            value={settings.servicesTransportNoticeText}
+            onChange={(e) =>
+              setSettings({ ...settings, servicesTransportNoticeText: e.target.value })
+            }
+            className="w-full rounded-xl border border-black/10 px-4 py-2.5"
+          />
+        </div>
+
         <button
           type="submit"
           disabled={saving}

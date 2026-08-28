@@ -100,6 +100,7 @@ export interface SiteSettings {
   commissionText: string;
   bankAccountNumber: string;
   applePayLink: string;
+  servicesTransportNoticeText: string;
 }
 
 export type CommissionPaymentMethod = "applepay" | "bank";
