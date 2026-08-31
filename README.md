@@ -15,8 +15,11 @@ tujjar-almawashi/
 ## التقنيات المستخدمة
 
 - **Next.js** (App Router) + **React**
-- **Firebase**: Auth (Email/Password) + Firestore + Hosting
+- **Firebase**: Auth (Email/Password + التحقق بالجوال OTP) + Firestore +
+  Storage + Cloud Functions + Hosting
 - **Tailwind CSS v4**
+- **الاختبارات**: `vitest` + مُحاكي Firestore لقواعد `firestore.rules`، وCI عبر
+  GitHub Actions
 
 ## طريقة التشغيل
 
@@ -43,6 +46,7 @@ npm run dev
 | التقرير النهائي (ملف المصدر) | [`docs/tujjar-report.html`](docs/tujjar-report.html) |
 | البنية التقنية | [`docs/architecture.md`](docs/architecture.md) |
 | مرجع البيانات | [`docs/api-reference.md`](docs/api-reference.md) |
+| الاختبارات و CI | [`docs/testing.md`](docs/testing.md) |
 | خارطة الطريق | [`docs/roadmap.md`](docs/roadmap.md) |
 
 ## الرخصة

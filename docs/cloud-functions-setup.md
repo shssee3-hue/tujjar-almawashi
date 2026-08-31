@@ -1,26 +1,37 @@
-# إعداد Cloud Functions (نسيت كلمة المرور + حذف الحساب نهائيًا)
+# إعداد Cloud Functions + Storage
 
-## شيء واحد فقط متبقٍ: خطة Blaze
+## المتطلب الوحيد: خطة Blaze
 
-بعد التحول لـ **Firebase Phone Authentication** (بدل أي مزوّد SMS خارجي)،
-ما عاد فيه حاجة لأي حساب شركة ثالثة أو مفتاح API — Google نفسها ترسل رسالة
-التحقق. حتى تفعيل خيار "الدخول بالجوال" وسياسة مناطق SMS تم برمجيًا من
-عندي، بدون أي خطوة يدوية.
+Cloud Functions **و** Firebase Storage كلاهما يتطلب أن يكون مشروع Firebase على
+خطة **Blaze** (الدفع حسب الاستخدام). لا يوجد أي مزوّد خارجي أو مفتاح API —
+رسائل التحقق عبر Firebase Phone Authentication من Google نفسها، وتفعيل "الدخول
+بالجوال" وسياسة مناطق SMS تمّا برمجيًا.
 
-**آخر فحص مباشر لي على المشروع لسّه يُظهر أنه غير مفعّل** على خطة Blaze —
-تأكدت عبر 3 طرق مختلفة (أمر نشر فعلي، Cloud Billing API، وأمر ضبط سرّ)
-وكلها أعطت نفس النتيجة. تأكد أن الترقية اكتملت فعليًا (أحيانًا تحتاج تأكيد
-وسيلة الدفع لتكتمل) من هنا:
-
+تأكد من الترقية من:
 https://console.firebase.google.com/project/tujjar-almawashi/usage/details
 
-بمجرد ما تتأكد إنها فعلًا "Blaze" في تلك الصفحة، أخبرني وأنشر الدوال الأربع
-مباشرة — أمر واحد من عندي، ولا شيء آخر مطلوب منك.
+## النشر
 
-## ملاحظة
+من مجلد `frontend/`:
 
-كل شيء آخر جاهز ومبني ومختبر بالفعل — الواجهة (نسيت كلمة المرور بخطوة واحدة:
-الجوال ← رمز التحقق ← كلمة المرور الجديدة)، منطق Firestore، قواعد الأمان،
-وحتى إعدادات Firebase Auth (الدخول بالجوال + مناطق SMS المسموحة) — كلها
-منشورة/مفعّلة على المشروع الحي الآن. الشيء الوحيد الناقص فعليًا هو خطة
-Blaze، اللي بدونها Cloud Functions لا تعمل إطلاقًا مهما كان الكود جاهزًا.
+```bash
+firebase deploy --only functions,storage,firestore:rules,firestore:indexes
+```
+
+الدوال المنشورة (`frontend/functions/src/index.ts`, منطقة `us-central1`):
+
+| الدالة | النوع |
+|---|---|
+| `startPhoneReset`, `completePhoneReset`, `resetPasswordWithOtp` | onCall — تدفّق استعادة كلمة المرور بالجوال |
+| `deleteUserCompletely` | onCall — حذف مستخدم نهائيًا (Firestore + Storage + Auth) |
+| `recomputeSellerRating` | onDocumentWritten `ratings/{ratingId}` — تجميع تقييم البائع |
+
+## بعد أول نشر لـ Storage
+
+شغّل سكربت ترحيل الصور القديمة (Base64 داخل Firestore ← Storage) لمرة واحدة —
+راجع [`../frontend/scripts/README.md`](../frontend/scripts/README.md).
+
+## الفهارس
+
+`firebase deploy --only firestore:indexes` ينشئ الفهارس المركّبة الجديدة
+اللازمة لترقيم `listAds` من جهة الخادم (قد تستغرق دقائق حتى تُبنى).
