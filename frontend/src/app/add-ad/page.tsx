@@ -200,7 +200,12 @@ function AddAdForm() {
       };
 
       if (editId) {
-        await updateAd(editId, payload);
+        // sellerRating is denormalised reputation, owned by the
+        // recomputeSellerRating Cloud Function — never re-send it on an
+        // edit (firestore.rules now pins it on the seller update path).
+        const editPayload: Partial<typeof payload> = { ...payload };
+        delete editPayload.sellerRating;
+        await updateAd(editId, editPayload);
         toast.success("تم تحديث الإعلان");
         router.push(`/ad?id=${editId}`);
       } else {
@@ -659,7 +664,7 @@ function AddAdForm() {
 
         <div>
           <label className="mb-2 block text-sm font-medium">الصور *</label>
-          <ImageUploader images={images} onChange={setImages} />
+          <ImageUploader images={images} onChange={setImages} uid={firebaseUser.uid} />
         </div>
 
         <button

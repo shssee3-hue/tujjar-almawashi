@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -17,3 +18,7 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 // functions/src/index.ts is deployed to us-central1 — must match here.
 export const functions = getFunctions(app, "us-central1");
+// Ad photos and commission receipts live in Cloud Storage (bucket from
+// NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET); see src/lib/storage.ts and
+// storage.rules. They used to be inlined as Base64 on the Firestore doc.
+export const storage = getStorage(app);

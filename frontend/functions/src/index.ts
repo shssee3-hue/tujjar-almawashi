@@ -16,15 +16,26 @@
  * client side for that part of the flow.
  */
 
+import { randomUUID } from "node:crypto";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { getStorage } from "firebase-admin/storage";
 
 initializeApp();
 const db = getFirestore();
 
 const RESET_SESSION_TTL_MS = 3 * 60 * 1000; // 3 minutes, per spec
+
+// Firestore caps `in` filters at 30 values and a write batch at 500 ops;
+// most helpers below fan work out in chunks to stay under those limits.
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
 
 /**
  * Step 1: seller enters their phone number on the "forgot password" page.
@@ -44,8 +55,16 @@ export const startPhoneReset = onCall({ region: "us-central1" }, async (request)
     .where("phoneNumber", "==", phone)
     .limit(1)
     .get();
+  // Do NOT reveal whether the number is registered (that would be a phone
+  // enumeration oracle). For an unknown number, return a normally-shaped
+  // response with an opaque resetId that no later step can act on — the
+  // client still runs the Firebase Phone Auth SMS step, and the flow simply
+  // fails generically at completePhoneReset ("طلب غير صالح").
   if (usersSnap.empty) {
-    throw new HttpsError("not-found", "هذا الرقم غير مسجّل في المنصة");
+    return {
+      resetId: randomUUID(),
+      expiresAt: Date.now() + RESET_SESSION_TTL_MS,
+    };
   }
   const userDoc = usersSnap.docs[0];
 
@@ -91,22 +110,28 @@ export const completePhoneReset = onCall({ region: "us-central1" }, async (reque
     throw new HttpsError("unauthenticated", "يجب التحقق من رقم الجوال أولًا");
   }
 
+  // One generic failure for every "this session can't be completed" case
+  // (unknown/opaque resetId, already used, expired, phone mismatch) so the
+  // response never distinguishes a registered number from an unknown one.
+  const invalid = () =>
+    new HttpsError("failed-precondition", "تعذّر التحقق، يرجى طلب رمز جديد");
+
   const ref = db.collection("password_resets").doc(resetId);
   const snap = await ref.get();
   if (!snap.exists) {
-    throw new HttpsError("not-found", "طلب غير صالح، يرجى طلب رمز جديد");
+    throw invalid();
   }
   const data = snap.data() as { phone: string; used: boolean; expiresAt: number };
 
   if (data.used) {
-    throw new HttpsError("failed-precondition", "انتهت صلاحية الرمز، يرجى طلب رمز جديد");
+    throw invalid();
   }
   if (Date.now() > data.expiresAt) {
     await ref.update({ used: true });
-    throw new HttpsError("deadline-exceeded", "انتهت صلاحية الرمز، يرجى طلب رمز جديد");
+    throw invalid();
   }
   if (data.phone !== verifiedPhone) {
-    throw new HttpsError("permission-denied", "رقم الجوال المتحقق منه لا يطابق هذا الطلب");
+    throw invalid();
   }
 
   await ref.update({ verified: true });
@@ -152,8 +177,9 @@ export const resetPasswordWithOtp = onCall({ region: "us-central1" }, async (req
 
 /**
  * Owner-only: permanently deletes a user — their Firestore profile, ads,
- * ratings, and commission records, plus (the part only Admin SDK can do)
- * their actual Firebase Auth account.
+ * comments, filed reports, ratings (both the ones they left and the ones
+ * left on their ads), commission records, and uploaded Storage files, plus
+ * (the part only Admin SDK can do) their actual Firebase Auth account.
  */
 export const deleteUserCompletely = onCall({ region: "us-central1" }, async (request) => {
   if (!request.auth) {
@@ -172,18 +198,60 @@ export const deleteUserCompletely = onCall({ region: "us-central1" }, async (req
     throw new HttpsError("failed-precondition", "لا يمكنك حذف حسابك الخاص من هنا");
   }
 
-  const [adsSnap, ratingsSnap, commissionsSnap] = await Promise.all([
-    db.collection("ads").where("sellerId", "==", targetUid).get(),
-    db.collection("ratings").where("userId", "==", targetUid).get(),
-    db.collection("commissions").where("sellerId", "==", targetUid).get(),
+  const [adsSnap, ratingsByUserSnap, commissionsSnap, commentsSnap, reportsSnap] =
+    await Promise.all([
+      db.collection("ads").where("sellerId", "==", targetUid).get(),
+      db.collection("ratings").where("userId", "==", targetUid).get(),
+      db.collection("commissions").where("sellerId", "==", targetUid).get(),
+      db.collection("comments").where("userId", "==", targetUid).get(),
+      db.collection("reports").where("reporterId", "==", targetUid).get(),
+    ]);
+
+  // Ratings left by other users ON the target's ads would otherwise be
+  // orphaned; fetch them via the ad ids (chunked — `in` caps at 30).
+  const adIds = adsSnap.docs.map((d) => d.id);
+  const ratingsOnAdsDocs: FirebaseFirestore.QueryDocumentSnapshot[] = [];
+  for (const group of chunk(adIds, 30)) {
+    const s = await db.collection("ratings").where("adId", "in", group).get();
+    ratingsOnAdsDocs.push(...s.docs);
+  }
+
+  // Dedupe by path (a rating can match both queries) then delete in
+  // batches of 400 to stay under the 500-op limit for a prolific seller.
+  const refs = new Map<string, FirebaseFirestore.DocumentReference>();
+  for (const d of [
+    ...adsSnap.docs,
+    ...ratingsByUserSnap.docs,
+    ...ratingsOnAdsDocs,
+    ...commissionsSnap.docs,
+    ...commentsSnap.docs,
+    ...reportsSnap.docs,
+  ]) {
+    refs.set(d.ref.path, d.ref);
+  }
+  refs.set(`users/${targetUid}`, db.collection("users").doc(targetUid));
+
+  for (const group of chunk([...refs.values()], 400)) {
+    const batch = db.batch();
+    group.forEach((ref) => batch.delete(ref));
+    await batch.commit();
+  }
+
+  // The seller's uploaded ad photos and payment receipts. Best-effort —
+  // the Firestore records are already gone and Auth deletion still follows.
+  await Promise.all([
+    getStorage()
+      .bucket()
+      .deleteFiles({ prefix: `ad-images/${targetUid}/` })
+      .catch(() => undefined),
+    getStorage()
+      .bucket()
+      .deleteFiles({ prefix: `commission-receipts/${targetUid}/` })
+      .catch(() => undefined),
   ]);
 
-  const batch = db.batch();
-  adsSnap.docs.forEach((d) => batch.delete(d.ref));
-  ratingsSnap.docs.forEach((d) => batch.delete(d.ref));
-  commissionsSnap.docs.forEach((d) => batch.delete(d.ref));
-  batch.delete(db.collection("users").doc(targetUid));
-  await batch.commit();
+  // Ratings deleted above fire recomputeSellerRating for the affected ads,
+  // which self-heals the *other* sellers' aggregates.
 
   await getAuth()
     .deleteUser(targetUid)
@@ -198,3 +266,66 @@ export const deleteUserCompletely = onCall({ region: "us-central1" }, async (req
 
   return { success: true };
 });
+
+/**
+ * Keeps a seller's reputation score in sync. A rating lives at
+ * ratings/{adId}_{userId} and is really a rating of the *seller* via one of
+ * their ads, so whenever any rating for any of a seller's ads is created,
+ * changed, or deleted we recompute the average across ALL their ads and
+ * write it to users/{sellerId}.rating (+ ratingCount), mirroring it onto
+ * every one of that seller's ad docs as sellerRating (+ sellerRatingCount)
+ * so ad cards/pages can show it without a users lookup.
+ *
+ * This is the only writer of those fields — firestore.rules pins them to 0
+ * at creation and blocks sellers from editing them, and this function runs
+ * with Admin privileges that bypass the rules. The per-ad average shown by
+ * <RatingStars> is a separate, deliberately narrower number.
+ */
+export const recomputeSellerRating = onDocumentWritten(
+  { document: "ratings/{ratingId}", region: "us-central1" },
+  async (event) => {
+    const adId = (event.data?.after.data()?.adId ??
+      event.data?.before.data()?.adId) as string | undefined;
+    if (!adId) return;
+
+    const adSnap = await db.collection("ads").doc(adId).get();
+    const sellerId = adSnap.get("sellerId") as string | undefined;
+    if (!sellerId) return;
+
+    const sellerAdsSnap = await db
+      .collection("ads")
+      .where("sellerId", "==", sellerId)
+      .get();
+    const sellerAdIds = sellerAdsSnap.docs.map((d) => d.id);
+
+    let sum = 0;
+    let count = 0;
+    for (const group of chunk(sellerAdIds, 30)) {
+      const rs = await db.collection("ratings").where("adId", "in", group).get();
+      rs.forEach((r) => {
+        const value = r.get("value");
+        if (typeof value === "number") {
+          sum += value;
+          count += 1;
+        }
+      });
+    }
+    const rating = count ? Math.round((sum / count) * 10) / 10 : 0;
+
+    const targets: FirebaseFirestore.DocumentReference[] = [
+      db.collection("users").doc(sellerId),
+      ...sellerAdsSnap.docs.map((d) => d.ref),
+    ];
+    for (const group of chunk(targets, 400)) {
+      const batch = db.batch();
+      for (const ref of group) {
+        if (ref.parent.id === "users") {
+          batch.set(ref, { rating, ratingCount: count }, { merge: true });
+        } else {
+          batch.update(ref, { sellerRating: rating, sellerRatingCount: count });
+        }
+      }
+      await batch.commit();
+    }
+  }
+);

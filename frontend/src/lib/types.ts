@@ -38,6 +38,10 @@ export interface Ad {
   updatedAt: number;
   views: number;
   reportsCount: number;
+  // Seller-level reputation, denormalised from the seller's users doc and
+  // kept in sync by the recomputeSellerRating Cloud Function. Distinct from
+  // the per-ad average shown by <RatingStars>.
+  sellerRatingCount?: number;
   status: AdStatus;
   featured?: boolean;
   oathAccepted: boolean;
@@ -51,7 +55,10 @@ export interface UserProfile {
   phoneNumber: string;
   email: string;
   accountType: AccountType;
+  // Average of every rating left on any of this seller's ads, maintained by
+  // the recomputeSellerRating Cloud Function (0 until the first rating).
   rating: number;
+  ratingCount?: number;
   adsCount: number;
   reportsCount: number;
   role: UserRole;

@@ -162,7 +162,10 @@ export default function AdDetailsClient() {
             <div>
               <p className="font-bold">{ad.sellerName}</p>
               <p className="text-xs text-black/40">
-                {ad.sellerType === "trader" ? "تاجر" : "فرد"} · تقييم {ad.sellerRating || 0}/5
+                {ad.sellerType === "trader" ? "تاجر" : "فرد"} ·{" "}
+                {ad.sellerRatingCount
+                  ? `تقييم ${(ad.sellerRating || 0).toFixed(1)}/5 (${ad.sellerRatingCount})`
+                  : "لا تقييم بعد"}
               </p>
             </div>
           </div>

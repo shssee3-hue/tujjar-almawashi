@@ -7,6 +7,10 @@ import { useAuthGate } from "@/lib/useAuthGate";
 import { submitRating, getMyRating, getAverageRating } from "@/lib/ratings";
 import AuthGateModal from "@/components/AuthGateModal";
 
+// Shows/collects the average rating for THIS ad only. The seller's overall
+// reputation (across all their ads) is a separate number — ad.sellerRating /
+// profile.rating — maintained by the recomputeSellerRating Cloud Function and
+// shown in the seller info box.
 export default function RatingStars({ adId, sellerId }: { adId: string; sellerId: string }) {
   const { firebaseUser } = useAuth();
   const isOwnAd = firebaseUser?.uid === sellerId;

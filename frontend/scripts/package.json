@@ -1,0 +1,13 @@
+{
+  "name": "tujjar-almawashi-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "One-off maintenance scripts (run manually with a service-account key, never part of the app or CI).",
+  "scripts": {
+    "migrate:images": "node migrate-images-to-storage.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}

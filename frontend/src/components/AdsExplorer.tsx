@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 import { listAds, AdFilters } from "@/lib/ads";
 import { listBreeds } from "@/lib/breeds";
 import { listAdditionalServices } from "@/lib/services";
 import { Ad, AdCategory, Breed, AdditionalService } from "@/lib/types";
 import AdCard from "@/components/AdCard";
-import Pagination from "@/components/Pagination";
 import BackButton from "@/components/BackButton";
 import {
   DEFAULT_BREEDS,
@@ -17,7 +17,6 @@ import {
   SECTION_OPTIONS,
 } from "@/lib/constants";
 
-const PAGE_SIZE = 12;
 const REGION_OPTIONS = DEFAULT_REGIONS["السعودية"] || [];
 
 function uniq(list: string[]) {
@@ -60,8 +59,9 @@ export default function AdsExplorer() {
   }, [params]);
 
   const [ads, setAds] = useState<Ad[]>([]);
+  const [cursor, setCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Admin-added breeds/services (from /dashboard/breeds and
   // /dashboard/services) — merged with the hardcoded defaults below so a
@@ -115,16 +115,28 @@ export default function AdsExplorer() {
   useEffect(() => {
     setLoading(true);
     listAds(filters)
-      .then((res) => {
-        setAds(res);
-        setPage(1);
+      .then(({ ads: firstPage, cursor: next }) => {
+        setAds(firstPage);
+        setCursor(next);
       })
-      .catch(() => setAds([]))
+      .catch(() => {
+        setAds([]);
+        setCursor(null);
+      })
       .finally(() => setLoading(false));
   }, [filters]);
 
-  const totalPages = Math.max(1, Math.ceil(ads.length / PAGE_SIZE));
-  const pageAds = ads.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  function loadMore() {
+    if (!cursor || loadingMore) return;
+    setLoadingMore(true);
+    listAds(filters, { cursor })
+      .then(({ ads: nextPage, cursor: next }) => {
+        setAds((prev) => [...prev, ...nextPage]);
+        setCursor(next);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMore(false));
+  }
 
   function applySearch(e: React.FormEvent) {
     e.preventDefault();
@@ -221,21 +233,36 @@ export default function AdsExplorer() {
         </button>
       </form>
 
-      <div className="mb-3 text-sm text-black/50">{ads.length} إعلان</div>
+      <div className="mb-3 text-sm text-black/50">
+        {ads.length}
+        {cursor ? "+" : ""} إعلان
+      </div>
 
       {loading ? (
         <p className="py-20 text-center text-black/40">جاري التحميل...</p>
-      ) : pageAds.length === 0 ? (
+      ) : ads.length === 0 ? (
         <p className="py-20 text-center text-black/40">لا توجد نتائج مطابقة</p>
       ) : (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          {pageAds.map((ad) => (
-            <AdCard key={ad.id} ad={ad} />
-          ))}
-        </div>
-      )}
+        <>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+            {ads.map((ad) => (
+              <AdCard key={ad.id} ad={ad} />
+            ))}
+          </div>
 
-      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+          {cursor && (
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="rounded-xl border border-black/10 bg-white px-6 py-2.5 text-sm font-bold text-brand-primary shadow-sm transition hover:bg-black/5 disabled:opacity-50"
+              >
+                {loadingMore ? "جاري التحميل..." : "عرض المزيد"}
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

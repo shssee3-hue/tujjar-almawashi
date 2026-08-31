@@ -51,9 +51,12 @@ service cloud.firestore {
             // writes it later via setUserBanned), so direct dot access would
             // throw and deny this whole rule for every never-banned account —
             // i.e. almost everyone — hence get() with a default here.
+            // rating/ratingCount are written only by the recomputeSellerRating
+            // Cloud Function (Admin SDK, bypasses these rules).
             && request.resource.data.role == resource.data.role
             && request.resource.data.get("banned", false) == resource.data.get("banned", false)
             && request.resource.data.rating == resource.data.rating
+            && request.resource.data.get("ratingCount", 0) == resource.data.get("ratingCount", 0)
             && request.resource.data.reportsCount == resource.data.reportsCount);
       allow delete: if isSystemOwner();
     }
@@ -112,6 +115,10 @@ service cloud.firestore {
             && request.resource.data.get("featured", false) == resource.data.get("featured", false)
             && request.resource.data.reportsCount == resource.data.reportsCount
             && request.resource.data.views == resource.data.views
+            // sellerRating/sellerRatingCount are maintained only by the
+            // recomputeSellerRating Cloud Function, never by the seller.
+            && request.resource.data.sellerRating == resource.data.sellerRating
+            && request.resource.data.get("sellerRatingCount", 0) == resource.data.get("sellerRatingCount", 0)
             && (request.resource.data.status == resource.data.status
                 || request.resource.data.status == "deleted"
                 || request.resource.data.status == "ended"))
