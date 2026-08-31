@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getAd, incrementViews, listSimilarAds, deleteAd } from "@/lib/ads";
+import { getAd, listSimilarAds, deleteAd } from "@/lib/ads";
 import { Ad } from "@/lib/types";
 import ImageGallery from "@/components/ImageGallery";
 import ReportButton from "@/components/ReportButton";
@@ -38,7 +38,6 @@ export default function AdDetailsClient() {
     getAd(id).then((res) => {
       setAd(res);
       if (res) {
-        incrementViews(id);
         listSimilarAds(res).then(setSimilar);
       }
     });

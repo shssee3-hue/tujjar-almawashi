@@ -11,7 +11,6 @@ import {
   orderBy,
   limit as fsLimit,
   startAfter,
-  increment,
   runTransaction,
   type QueryConstraint,
   type QueryDocumentSnapshot,
@@ -58,7 +57,7 @@ export interface AdsPage {
 
 export const ADS_PAGE_SIZE = 12;
 
-export async function createAd(data: Omit<Ad, "id" | "adCode" | "createdAt" | "updatedAt" | "views" | "reportsCount" | "status">) {
+export async function createAd(data: Omit<Ad, "id" | "adCode" | "createdAt" | "updatedAt" | "reportsCount" | "status">) {
   const now = Date.now();
   const adCode = await generateAdCode();
   const docRef = await addDoc(adsCol, {
@@ -66,7 +65,6 @@ export async function createAd(data: Omit<Ad, "id" | "adCode" | "createdAt" | "u
     adCode,
     createdAt: now,
     updatedAt: now,
-    views: 0,
     reportsCount: 0,
     status: "active",
   });
@@ -89,14 +87,6 @@ export async function getAd(id: string): Promise<Ad | null> {
   const snap = await getDoc(doc(db, "ads", id));
   if (!snap.exists()) return null;
   return { id: snap.id, ...(snap.data() as Omit<Ad, "id">) };
-}
-
-export async function incrementViews(id: string) {
-  try {
-    await updateDoc(doc(db, "ads", id), { views: increment(1) });
-  } catch {
-    // non-critical
-  }
 }
 
 export async function listAds(

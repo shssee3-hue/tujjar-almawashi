@@ -23,7 +23,7 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 | phoneNumber, whatsapp | string | |
 | showCallButton, showWhatsappButton | boolean | تتحكم بظهور زر الاتصال/واتساب للمشترين — كلاهما `false` افتراضيًا؛ الرقم لا يظهر تلقائيًا أبدًا |
 | images | string[] | Base64 Data URI مضغوطة، مخزّنة على المستند مباشرة (لا Firebase Storage — يتطلب Blaze) |
-| views, reportsCount | number | |
+| reportsCount | number | عدد البلاغات؛ يُقرأ في لوحة الإدارة (لا عدّاد مشاهدات — أُزيل لتوفير كتابات Firestore) |
 | status | `active` \| `ended` \| `flagged` \| `deleted` | |
 | featured | boolean | |
 | oathAccepted | boolean | يجب أن تكون `true` عند الإنشاء — مفروضة في `firestore.rules`، راجع الملاحظة أدناه |
@@ -31,7 +31,7 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 **الصلاحيات:** القراءة عامة.
 
 **الإنشاء** لأي مستخدم مسجّل (لنفسه فقط)، وفقط إذا كانت `oathAccepted == true`
-(إقرار العمولة الإلزامي)، و`views`/`reportsCount` تساوي 0، و`price >= 0`،
+(إقرار العمولة الإلزامي)، و`reportsCount` تساوي 0، و`price >= 0`،
 و`category` ضمن الأقسام الخمسة الفعّالة (`offers` مستثناة عمدًا — قسم متوقف
 لم يعد متاحًا للإعلانات الجديدة، راجع الملاحظة أدناه)، و`featured` غائب أو
 `false`، و`sellerName`/`sellerType` مطابقة فعليًا لملفه الشخصي —
@@ -39,14 +39,12 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 إعلان "مميز" مجانًا، أو بعدد مشاهدات/بلاغات مزيّف، أو بسعر سالب أو قسم وهمي، أو منتحلاً اسمًا أو صفة تاجر.
 
 **التعديل:** صاحب الإعلان يقدر يعدّل محتوى إعلانه بحرية (العنوان، السعر، الصور،
-إلخ)، لكن لا يقدر يغيّر `featured`/`reportsCount`/`views` إطلاقًا، ولا يقدر يغيّر
+إلخ)، لكن لا يقدر يغيّر `featured`/`reportsCount` إطلاقًا، ولا يقدر يغيّر
 `status` إلا إلى `"deleted"` (حذفه الذاتي الناعم) أو `"ended"` (تُضبط تلقائيًا من
 `SaleConfirmationModal` عند تأكيد "تم البيع" — راجع قسم `commissions` أدناه) — لا
 يقدر مثلاً يُرجع إعلانه من `"flagged"` إلى `"active"` بنفسه ليتحايل على قرار إشراف.
 admin/owner معفيّون من
-هذا القيد بالكامل (`isAdmin()` يمرّ أولًا). بالإضافة لذلك، **أي شخص** (حتى غير
-مسجّل دخول) يقدر يزيد `views` تحديدًا بمقدار +1 بالضبط ولا شيء غيره — هذا ما
-يشغّل عداد المشاهدات العام في `incrementViews()`؛ وبنفس الأسلوب، **أي مستخدم
+هذا القيد بالكامل (`isAdmin()` يمرّ أولًا). بالإضافة لذلك، **أي مستخدم
 مسجّل دخول** (وليس فقط البائع أو admin) يقدر يزيد `reportsCount` بمقدار +1
 بالضبط ولا شيء غيره — هذا ما يستدعيه `createReport()` مباشرة بعد إنشاء مستند
 البلاغ؛ بدون هذا الاستثناء يفشل هذا التحديث دائمًا لأي مُبلِّغ ليس صاحب
@@ -104,7 +102,7 @@ admin/owner معفيّون من
 المناطق، وكل المسميات. المنطق في `AdsExplorer.tsx` (متغيّر `locked`، مبني من
 وجود `animalType`/`category` في `window.location.search`).
 
-**الدوال:** `createAd`, `updateAd`, `deleteAd`, `hardDeleteAd`, `getAd`, `incrementViews`, `listAds`, `listFeaturedAds`, `listAdsBySeller`, `listSimilarAds`, `listAllAdsAdmin` — في `frontend/src/lib/ads.ts`.
+**الدوال:** `createAd`, `updateAd`, `deleteAd`, `hardDeleteAd`, `getAd`, `listAds`, `listAdsBySeller`, `listSimilarAds`, `listAllAdsAdmin` — في `frontend/src/lib/ads.ts`.
 
 ## users
 

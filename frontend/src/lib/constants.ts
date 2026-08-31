@@ -102,13 +102,6 @@ export const DEFAULT_REGIONS: Record<string, string[]> = {
   ],
 };
 
-export const SORT_OPTIONS = [
-  { value: "newest", label: "الأحدث" },
-  { value: "price_asc", label: "السعر: من الأقل للأعلى" },
-  { value: "price_desc", label: "السعر: من الأعلى للأقل" },
-  { value: "views", label: "الأكثر مشاهدة" },
-];
-
 export const REPORT_REASONS = [
   "إعلان مخالف أو مضلل",
   "صور غير حقيقية",
