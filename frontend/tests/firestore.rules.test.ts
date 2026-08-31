@@ -84,7 +84,6 @@ beforeEach(async () => {
       price: 100,
       status: "active",
       oathAccepted: true,
-      views: 5,
       reportsCount: 2,
       featured: false,
       createdAt: 0,
@@ -106,7 +105,6 @@ const validAd = (over: Record<string, unknown> = {}) => ({
   price: 100,
   status: "active",
   oathAccepted: true,
-  views: 0,
   reportsCount: 0,
   createdAt: 0,
   ...over,
@@ -129,8 +127,7 @@ describe("ads: create", () => {
     );
   });
 
-  it("rejects pre-seeded views / reportsCount", async () => {
-    await assertFails(setDoc(doc(asSeller(), "ads", "new4"), validAd({ views: 10 })));
+  it("rejects a pre-seeded reportsCount", async () => {
     await assertFails(
       setDoc(doc(asSeller(), "ads", "new5"), validAd({ reportsCount: 3 }))
     );
@@ -155,10 +152,9 @@ describe("ads: update", () => {
     await assertSucceeds(updateDoc(doc(asSeller(), "ads", "ad1"), { title: "جديد" }));
   });
 
-  it("blocks the seller from self-featuring or editing moderation counters", async () => {
+  it("blocks the seller from self-featuring or editing the report count", async () => {
     await assertFails(updateDoc(doc(asSeller(), "ads", "ad1"), { featured: true }));
     await assertFails(updateDoc(doc(asSeller(), "ads", "ad1"), { reportsCount: 0 }));
-    await assertFails(updateDoc(doc(asSeller(), "ads", "ad1"), { views: 100 }));
   });
 
   it("allows status -> ended/deleted but not a revert to active", async () => {
@@ -167,14 +163,6 @@ describe("ads: update", () => {
       await updateDoc(doc(ctx.firestore(), "ads", "ad1"), { status: "flagged" });
     });
     await assertFails(updateDoc(doc(asSeller(), "ads", "ad1"), { status: "active" }));
-  });
-
-  it("lets anyone bump views by exactly one, and nothing else", async () => {
-    await assertSucceeds(updateDoc(doc(asAnon(), "ads", "ad1"), { views: 6 }));
-    await testEnv.withSecurityRulesDisabled(async (ctx) => {
-      await updateDoc(doc(ctx.firestore(), "ads", "ad1"), { views: 5 });
-    });
-    await assertFails(updateDoc(doc(asAnon(), "ads", "ad1"), { views: 25 }));
   });
 
   it("lets a signed-in user bump reportsCount by exactly one", async () => {

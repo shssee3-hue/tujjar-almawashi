@@ -35,7 +35,6 @@ export interface Ad {
   images: string[];
   createdAt: number;
   updatedAt: number;
-  views: number;
   reportsCount: number;
   status: AdStatus;
   featured?: boolean;
