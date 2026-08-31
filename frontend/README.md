@@ -1,7 +1,7 @@
 # تجّار المواشي — Tujjar Al-Mawashi
 
-منصة ويب لبيع وشراء المواشي (أغنام، ماعز، إبل، أبقار، خيول، دواجن) في السعودية
-ودول الخليج.
+منصة ويب لبيع وشراء المواشي (أغنام، ماعز، إبل، أبقار، خيول، دواجن) في المملكة
+العربية السعودية.
 
 ## Tech Stack
 
@@ -12,9 +12,8 @@
   from the originally proposed Node/Express + MongoDB/Vercel/Render stack.
 - **Auth:** Firebase Authentication — Email/Password, plus phone/OTP for the
   "forgot password" flow (Firebase Phone Authentication)
-- **Cloud Functions:** the few Admin-SDK-only operations — password reset,
-  permanent user deletion, and the `recomputeSellerRating` Firestore trigger
-  (`functions/`)
+- **Cloud Functions:** the few Admin-SDK-only operations — phone/OTP password
+  reset and permanent user deletion (`functions/`)
 - **Hosting:** Firebase Hosting (static export, `next build` with
   `output: "export"`). Note: the single-ad page is `/ad?id=<id>` rather than
   `/ad/<id>` — a static export has no server to resolve arbitrary dynamic
@@ -60,7 +59,7 @@ src/
   components/             # مكوّنات واجهة قابلة لإعادة الاستخدام
   contexts/AuthContext.tsx # حالة تسجيل الدخول + بروفايل المستخدم + الدور
   lib/                    # طبقة الوصول لـ Firestore/Storage (ads/users/storage/...)
-functions/                 # Cloud Functions (Admin SDK + مُشغّل تقييم البائع)
+functions/                 # Cloud Functions (Admin SDK: استعادة كلمة المرور، حذف مستخدم)
 tests/                     # اختبارات firestore.rules (vitest + المُحاكي)
 scripts/                   # سكربتات صيانة لمرة واحدة (ترحيل الصور، معالجة صور الأصول)
 firestore.rules            # قواعد صلاحيات Firestore (RBAC)
@@ -78,8 +77,8 @@ firebase.json               # إعداد Firebase (Hosting + Firestore + Storage
   `firestore.rules` نفسها، بحيث لا فائدة من تجاوز الواجهة.
 - **admin (مشرف)**: إدارة الإعلانات (عدا الحذف النهائي — حصري لـ owner)، البلاغات،
   السلالات، والمناطق.
-- **user (مستخدم)**: حساب عادي — إضافة/تعديل/نشر إعلاناته، التعليق، التقييم.
-- **بدون تسجيل دخول**: تصفح فقط — أي محاولة تفاعل (إضافة إعلان، تعليق، تقييم،
+- **user (مستخدم)**: حساب عادي — إضافة/تعديل/نشر إعلاناته، والتعليق.
+- **بدون تسجيل دخول**: تصفح فقط — أي محاولة تفاعل (إضافة إعلان، تعليق،
   مشاركة) تفتح نافذة تسجيل دخول/حساب جديد بدل توجيه المستخدم لصفحة أخرى.
 
 ## الأقسام (Categories)

@@ -24,7 +24,6 @@ firebase deploy --only functions,storage,firestore:rules,firestore:indexes
 |---|---|
 | `startPhoneReset`, `completePhoneReset`, `resetPasswordWithOtp` | onCall — تدفّق استعادة كلمة المرور بالجوال |
 | `deleteUserCompletely` | onCall — حذف مستخدم نهائيًا (Firestore + Storage + Auth) |
-| `recomputeSellerRating` | onDocumentWritten `ratings/{ratingId}` — تجميع تقييم البائع |
 
 ## بعد أول نشر لـ Storage
 

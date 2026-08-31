@@ -9,7 +9,6 @@ import ReportButton from "@/components/ReportButton";
 import AdCard from "@/components/AdCard";
 import BackButton from "@/components/BackButton";
 import CommentsSection from "@/components/CommentsSection";
-import RatingStars from "@/components/RatingStars";
 import ShareButton from "@/components/ShareButton";
 import SaleConfirmationModal from "@/components/SaleConfirmationModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -138,7 +137,6 @@ export default function AdDetailsClient() {
             )}
 
             <div className="mt-6 flex items-center gap-4">
-              <RatingStars adId={ad.id} sellerId={ad.sellerId} />
               <ShareButton title={ad.title} />
             </div>
 
@@ -162,10 +160,7 @@ export default function AdDetailsClient() {
             <div>
               <p className="font-bold">{ad.sellerName}</p>
               <p className="text-xs text-black/40">
-                {ad.sellerType === "trader" ? "تاجر" : "فرد"} ·{" "}
-                {ad.sellerRatingCount
-                  ? `تقييم ${(ad.sellerRating || 0).toFixed(1)}/5 (${ad.sellerRatingCount})`
-                  : "لا تقييم بعد"}
+                {ad.sellerType === "trader" ? "تاجر" : "فرد"}
               </p>
             </div>
           </div>

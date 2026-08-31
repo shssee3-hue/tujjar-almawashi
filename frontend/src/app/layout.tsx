@@ -21,7 +21,7 @@ const cairo = Cairo({
 export const metadata: Metadata = {
   title: "تجّار المواشي | منصة بيع وشراء المواشي",
   description:
-    "منصة تجّار المواشي لبيع وشراء الأغنام والإبل والأبقار والماعز والخيول في السعودية ودول الخليج.",
+    "منصة تجّار المواشي لبيع وشراء الأغنام والإبل والأبقار والماعز والخيول في السعودية.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

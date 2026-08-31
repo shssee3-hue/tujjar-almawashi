@@ -12,8 +12,7 @@ Firebase من المتصفح، وقواعد Firestore Security Rules تفرض ك
   ├─ Firebase Auth (Email/Password + التحقق بالجوال OTP)
   ├─ Cloud Firestore (البيانات + قواعد RBAC)
   ├─ Firebase Storage (صور الإعلانات وإيصالات العمولة)
-  ├─ Cloud Functions (عمليات Admin SDK: استعادة كلمة المرور، حذف مستخدم،
-  │                    وحساب تقييم البائع)
+  ├─ Cloud Functions (عمليات Admin SDK: استعادة كلمة المرور، وحذف مستخدم)
   └─ Firebase Hosting (تصدير Next.js الثابت)
 ```
 
@@ -67,13 +66,15 @@ Firebase من المتصفح، وقواعد Firestore Security Rules تفرض ك
 [`../frontend/firestore.indexes.json`](../frontend/firestore.indexes.json).
 حقلا `breed`/`subCategory` يبقيان فلترة داخل الصفحة المجلوبة فقط.
 
-## تقييم البائع
+النطاق الجغرافي: **السعودية فقط**. حقل `country` باقٍ على نموذج الإعلان
+(وقائمة `COUNTRIES` تحوي `السعودية` وحدها) حتى تُعرَض الإعلانات القديمة من
+دول الخليج، لكن الإعلانات الجديدة لا يمكن أن تكون إلا `السعودية`.
 
-كل تقييم مستند في `ratings/{adId}_{userId}`. دالة `recomputeSellerRating`
-(مُشغَّل Firestore على `ratings/{ratingId}`) تعيد حساب متوسط تقييمات كل
-إعلانات البائع وتكتبه في `users/{sellerId}.rating` (+ `ratingCount`) وتُظلّله
-على `sellerRating` في كل إعلاناته. هذه الحقول لا يكتبها أحد غير الدالة —
-القواعد تثبّتها على 0 عند الإنشاء وتمنع البائع من تعديلها.
+## التقييم
+
+ميزة تقييم الإعلان/البائع **ملغاة**. مجموعة `ratings` مغلقة بالكامل في
+القواعد (`allow read, write: if false`)، ولا واجهة ولا دوال تتعامل معها؛ أي
+مستندات تقييم قديمة في Firestore خاملة.
 
 ## الاستضافة
 

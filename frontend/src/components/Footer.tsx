@@ -10,7 +10,7 @@ export default function Footer() {
             <span>تجّار المواشي</span>
           </div>
           <p className="text-sm leading-relaxed text-white/60">
-            منصة إلكترونية لبيع وشراء المواشي في السعودية ودول الخليج، تجمع
+            منصة إلكترونية لبيع وشراء المواشي في السعودية، تجمع
             التجار والأفراد في مكان واحد.
           </p>
         </div>

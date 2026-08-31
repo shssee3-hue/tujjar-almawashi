@@ -98,10 +98,7 @@ export default function ProfilePage() {
             <div>
               <h1 className="text-xl font-extrabold">{profile.name}</h1>
               <p className="text-sm text-black/50">
-                {profile.accountType === "trader" ? "تاجر" : "فرد"} ·{" "}
-                {profile.ratingCount
-                  ? `تقييم ${profile.rating.toFixed(1)}/5 (${profile.ratingCount})`
-                  : "لا تقييم بعد"}
+                {profile.accountType === "trader" ? "تاجر" : "فرد"}
               </p>
             </div>
           </div>

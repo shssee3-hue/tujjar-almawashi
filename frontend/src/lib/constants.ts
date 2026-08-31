@@ -79,14 +79,10 @@ export const SECTION_OPTIONS: { value: string; label: string; isAnimalType: bool
   })),
 ];
 
-export const COUNTRIES = [
-  "السعودية",
-  "الإمارات",
-  "الكويت",
-  "قطر",
-  "البحرين",
-  "عُمان",
-];
+// The platform operates in Saudi Arabia only. The `country` field is kept on
+// the ad model (and this list) so historical Gulf ads still render, but new
+// ads can only ever be "السعودية".
+export const COUNTRIES = ["السعودية"];
 
 export const DEFAULT_REGIONS: Record<string, string[]> = {
   "السعودية": [

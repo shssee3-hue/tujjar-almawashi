@@ -48,8 +48,6 @@ beforeEach(async () => {
     await setDoc(doc(db, "users", SELLER), {
       name: "S",
       accountType: "trader",
-      rating: 0,
-      ratingCount: 0,
       adsCount: 0,
       reportsCount: 0,
       role: "user",
@@ -60,7 +58,6 @@ beforeEach(async () => {
     await setDoc(doc(db, "users", BUYER), {
       name: "B",
       accountType: "individual",
-      rating: 0,
       adsCount: 0,
       reportsCount: 0,
       role: "user",
@@ -71,7 +68,6 @@ beforeEach(async () => {
     await setDoc(doc(db, "users", OWNER), {
       name: "O",
       accountType: "individual",
-      rating: 0,
       adsCount: 0,
       reportsCount: 0,
       role: "owner",
@@ -83,8 +79,6 @@ beforeEach(async () => {
       sellerId: SELLER,
       sellerName: "S",
       sellerType: "trader",
-      sellerRating: 0,
-      sellerRatingCount: 0,
       category: "livestock",
       title: "نعجة",
       price: 100,
@@ -107,7 +101,6 @@ const validAd = (over: Record<string, unknown> = {}) => ({
   sellerId: SELLER,
   sellerName: "S",
   sellerType: "trader",
-  sellerRating: 0,
   category: "livestock",
   title: "خروف",
   price: 100,
@@ -168,13 +161,6 @@ describe("ads: update", () => {
     await assertFails(updateDoc(doc(asSeller(), "ads", "ad1"), { views: 100 }));
   });
 
-  it("blocks the seller from editing their denormalised rating", async () => {
-    await assertFails(updateDoc(doc(asSeller(), "ads", "ad1"), { sellerRating: 5 }));
-    await assertFails(
-      updateDoc(doc(asSeller(), "ads", "ad1"), { sellerRatingCount: 99 })
-    );
-  });
-
   it("allows status -> ended/deleted but not a revert to active", async () => {
     await assertSucceeds(updateDoc(doc(asSeller(), "ads", "ad1"), { status: "ended" }));
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
@@ -210,7 +196,6 @@ describe("users", () => {
     const base = {
       name: "N",
       accountType: "individual",
-      rating: 0,
       adsCount: 0,
       reportsCount: 0,
       role: "user",
@@ -223,14 +208,13 @@ describe("users", () => {
     );
   });
 
-  it("create rejects a self-assigned admin role or fake rating", async () => {
+  it("create rejects a self-assigned admin role or pre-seeded counters", async () => {
     const NEW = "fresh-uid-2";
     const db = testEnv.authenticatedContext(NEW).firestore();
     await assertFails(
       setDoc(doc(db, "users", NEW), {
         name: "N",
         accountType: "individual",
-        rating: 0,
         adsCount: 0,
         reportsCount: 0,
         role: "admin",
@@ -243,9 +227,8 @@ describe("users", () => {
       setDoc(doc(db, "users", NEW), {
         name: "N",
         accountType: "individual",
-        rating: 5,
         adsCount: 0,
-        reportsCount: 0,
+        reportsCount: 3,
         role: "user",
         phoneNumber: "0",
         email: "n@e.com",
@@ -254,13 +237,12 @@ describe("users", () => {
     );
   });
 
-  it("self-update cannot escalate role, ban, or rating", async () => {
+  it("self-update cannot escalate role or ban", async () => {
     await assertSucceeds(
       updateDoc(doc(asBuyer(), "users", BUYER), { name: "B2" })
     );
     await assertFails(updateDoc(doc(asBuyer(), "users", BUYER), { role: "admin" }));
     await assertFails(updateDoc(doc(asBuyer(), "users", BUYER), { banned: true }));
-    await assertFails(updateDoc(doc(asBuyer(), "users", BUYER), { rating: 5 }));
   });
 
   it("a non-owner cannot read someone else's profile", async () => {
@@ -269,37 +251,24 @@ describe("users", () => {
   });
 });
 
-describe("ratings", () => {
-  const rate = (db: ReturnType<typeof asBuyer>, id: string, data: Record<string, unknown>) =>
-    setDoc(doc(db, "ratings", id), { createdAt: 0, ...data });
-
-  it("accepts an integer 1..5 from a non-seller with the canonical id", async () => {
-    await assertSucceeds(
-      rate(asBuyer(), `ad1_${BUYER}`, { adId: "ad1", userId: BUYER, value: 4 })
-    );
-  });
-
-  it("rejects out-of-range or non-integer values", async () => {
+describe("ratings (feature disabled)", () => {
+  it("is entirely closed to direct client access", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "ratings", `ad1_${BUYER}`), {
+        adId: "ad1",
+        userId: BUYER,
+        value: 4,
+        createdAt: 0,
+      });
+    });
+    await assertFails(getDoc(doc(asBuyer(), "ratings", `ad1_${BUYER}`)));
     await assertFails(
-      rate(asBuyer(), `ad1_${BUYER}`, { adId: "ad1", userId: BUYER, value: 0 })
-    );
-    await assertFails(
-      rate(asBuyer(), `ad1_${BUYER}`, { adId: "ad1", userId: BUYER, value: 6 })
-    );
-    await assertFails(
-      rate(asBuyer(), `ad1_${BUYER}`, { adId: "ad1", userId: BUYER, value: 3.5 })
-    );
-  });
-
-  it("rejects a mismatched document id", async () => {
-    await assertFails(
-      rate(asBuyer(), "wrong-id", { adId: "ad1", userId: BUYER, value: 4 })
-    );
-  });
-
-  it("rejects a seller rating their own ad", async () => {
-    await assertFails(
-      rate(asSeller(), `ad1_${SELLER}`, { adId: "ad1", userId: SELLER, value: 5 })
+      setDoc(doc(asBuyer(), "ratings", `ad1_${BUYER}`), {
+        adId: "ad1",
+        userId: BUYER,
+        value: 5,
+        createdAt: 0,
+      })
     );
   });
 });

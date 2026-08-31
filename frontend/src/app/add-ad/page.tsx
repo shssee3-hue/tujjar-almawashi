@@ -190,7 +190,6 @@ function AddAdForm() {
         sellerId: firebaseUser.uid,
         sellerName: profile.name,
         sellerType: profile.accountType,
-        sellerRating: profile.rating || 0,
         phoneNumber,
         whatsapp,
         showCallButton,
@@ -200,12 +199,7 @@ function AddAdForm() {
       };
 
       if (editId) {
-        // sellerRating is denormalised reputation, owned by the
-        // recomputeSellerRating Cloud Function — never re-send it on an
-        // edit (firestore.rules now pins it on the seller update path).
-        const editPayload: Partial<typeof payload> = { ...payload };
-        delete editPayload.sellerRating;
-        await updateAd(editId, editPayload);
+        await updateAd(editId, payload);
         toast.success("تم تحديث الإعلان");
         router.push(`/ad?id=${editId}`);
       } else {

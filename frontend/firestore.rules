@@ -36,27 +36,22 @@ service cloud.firestore {
     // info via denormalized fields on the ad itself, not a users lookup).
     match /users/{userId} {
       allow read: if isOwner(userId) || isSystemOwner();
-      // rating/reportsCount/adsCount must start at their guaranteed initial
-      // value too — a direct API call (bypassing createUserProfile())
-      // could otherwise self-assign a fake 5-star rating from day one.
+      // reportsCount/adsCount must start at their guaranteed initial value —
+      // a direct API call (bypassing createUserProfile()) could otherwise
+      // self-assign a fake report/ad count from day one.
       allow create: if isOwner(userId)
         && request.resource.data.role == "user"
-        && request.resource.data.rating == 0
         && request.resource.data.reportsCount == 0
         && request.resource.data.adsCount == 0;
       allow update: if isSystemOwner()
         || (isOwner(userId)
-            // owners can edit their own profile but never escalate role/ban/rating/reportsCount.
+            // owners can edit their own profile but never escalate role/ban/reportsCount.
             // "banned" is never set at profile creation (only an admin ever
             // writes it later via setUserBanned), so direct dot access would
             // throw and deny this whole rule for every never-banned account —
             // i.e. almost everyone — hence get() with a default here.
-            // rating/ratingCount are written only by the recomputeSellerRating
-            // Cloud Function (Admin SDK, bypasses these rules).
             && request.resource.data.role == resource.data.role
             && request.resource.data.get("banned", false) == resource.data.get("banned", false)
-            && request.resource.data.rating == resource.data.rating
-            && request.resource.data.get("ratingCount", 0) == resource.data.get("ratingCount", 0)
             && request.resource.data.reportsCount == resource.data.reportsCount);
       allow delete: if isSystemOwner();
     }
@@ -78,7 +73,7 @@ service cloud.firestore {
       // guaranteed initial value too — a direct API call (bypassing
       // createAd()) could otherwise create an ad that is already
       // "featured" for free, pre-seeded with fake views/reports, or
-      // impersonating a different seller identity (name/type/rating are
+      // impersonating a different seller identity (name/type are
       // denormalized from the caller's own profile, so they're checked
       // against it rather than trusted as given).
       // price/category are checked too — "offers" is deliberately excluded
@@ -88,7 +83,6 @@ service cloud.firestore {
         && request.resource.data.sellerId == request.auth.uid
         && request.resource.data.sellerName == ownSellerProfile().name
         && request.resource.data.sellerType == ownSellerProfile().accountType
-        && request.resource.data.sellerRating == ownSellerProfile().rating
         && request.resource.data.status == "active"
         && request.resource.data.oathAccepted == true
         && request.resource.data.views == 0
@@ -115,10 +109,6 @@ service cloud.firestore {
             && request.resource.data.get("featured", false) == resource.data.get("featured", false)
             && request.resource.data.reportsCount == resource.data.reportsCount
             && request.resource.data.views == resource.data.views
-            // sellerRating/sellerRatingCount are maintained only by the
-            // recomputeSellerRating Cloud Function, never by the seller.
-            && request.resource.data.sellerRating == resource.data.sellerRating
-            && request.resource.data.get("sellerRatingCount", 0) == resource.data.get("sellerRatingCount", 0)
             && (request.resource.data.status == resource.data.status
                 || request.resource.data.status == "deleted"
                 || request.resource.data.status == "ended"))
@@ -161,20 +151,12 @@ service cloud.firestore {
         || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
-    // ratings/{adId_userId} — one rating per user per ad, id enforces that.
-    // A seller may not rate their own ad — checked here, not just in the UI,
-    // by looking up the ad's sellerId directly.
+    // ratings/{adId_userId} — the ad/seller rating feature is disabled.
+    // No client may read or write; any historical rating documents left in
+    // Firestore are inert. (Cleanup of stale docs, if ever wanted, is an
+    // Admin-SDK job that bypasses these rules.)
     match /ratings/{ratingId} {
-      allow read: if true;
-      allow create, update: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid
-        && ratingId == request.resource.data.adId + "_" + request.auth.uid
-        && request.resource.data.value is int
-        && request.resource.data.value >= 1
-        && request.resource.data.value <= 5
-        && get(/databases/$(database)/documents/ads/$(request.resource.data.adId)).data.sellerId != request.auth.uid;
-      allow delete: if isAdmin()
-        || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow read, write: if false;
     }
 
     // reports/{reportId}

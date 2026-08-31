@@ -5,9 +5,9 @@
 `frontend/tests/firestore.rules.test.ts` يشغّل
 [`firestore.rules`](../frontend/firestore.rules) الحقيقية داخل مُحاكي
 Firestore عبر `@firebase/rules-unit-testing` + `vitest`، ويغطّي المسارات
-الحسّاسة أمنيًا: إنشاء/تعديل `ads`، ثبات حقول الثقة في `users`، حدود قيمة
-`ratings`، مراجعة `commissions`، عدّاد `counters/adCode`، قراءة `reports`،
-وإغلاق `password_resets` بالكامل.
+الحسّاسة أمنيًا: إنشاء/تعديل `ads`، ثبات حقول الثقة في `users`، مراجعة
+`commissions`، عدّاد `counters/adCode`، قراءة `reports`، وإغلاق
+`password_resets` و`ratings` (ميزة ملغاة) بالكامل.
 
 ### التشغيل محليًا
 

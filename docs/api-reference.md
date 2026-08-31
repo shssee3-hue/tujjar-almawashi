@@ -17,10 +17,9 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 | isNegotiable | boolean | |
 | animalType, breed, age | string | تُملأ فقط عندما category=="livestock" |
 | weight | number \| null | |
-| country, region | string | إلزاميان |
+| country, region | string | إلزاميان — `country` دائمًا `"السعودية"` للإعلانات الجديدة |
 | city | string | اختياري |
-| sellerId, sellerName, sellerType, sellerRating | — | مخزّنة مباشرة على الإعلان (denormalized) |
-| sellerRatingCount | number، اختياري | عدد التقييمات التي يقوم عليها `sellerRating` — يكتبه مُشغّل `recomputeSellerRating` فقط (راجع قسم `ratings`) |
+| sellerId, sellerName, sellerType | — | مخزّنة مباشرة على الإعلان (denormalized) |
 | phoneNumber, whatsapp | string | |
 | showCallButton, showWhatsappButton | boolean | تتحكم بظهور زر الاتصال/واتساب للمشترين — كلاهما `false` افتراضيًا؛ الرقم لا يظهر تلقائيًا أبدًا |
 | images | string[] | روابط تنزيل Firebase Storage (`ad-images/{uid}/…`). الإعلانات القديمة قد تحمل Data URI بصيغة base64 حتى يُشغَّل سكربت الترحيل |
@@ -35,15 +34,12 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 (إقرار العمولة الإلزامي)، و`views`/`reportsCount` تساوي 0، و`price >= 0`،
 و`category` ضمن الأقسام الخمسة الفعّالة (`offers` مستثناة عمدًا — قسم متوقف
 لم يعد متاحًا للإعلانات الجديدة، راجع الملاحظة أدناه)، و`featured` غائب أو
-`false`، و`sellerName`/`sellerType`/`sellerRating` مطابقة فعليًا لملفه الشخصي —
+`false`، و`sellerName`/`sellerType` مطابقة فعليًا لملفه الشخصي —
 كل هذا يمنع استدعاء مباشر لـ Firestore API (متجاوزًا `createAd()`) من إنشاء
-إعلان "مميز" مجانًا، أو بعدد مشاهدات/بلاغات مزيّف، أو بسعر سالب أو قسم وهمي، أو منتحلاً اسمًا أو صفة تاجر
-أو تقييمًا لا يملكه صاحبه فعليًا.
+إعلان "مميز" مجانًا، أو بعدد مشاهدات/بلاغات مزيّف، أو بسعر سالب أو قسم وهمي، أو منتحلاً اسمًا أو صفة تاجر.
 
 **التعديل:** صاحب الإعلان يقدر يعدّل محتوى إعلانه بحرية (العنوان، السعر، الصور،
-إلخ)، لكن لا يقدر يغيّر `featured`/`reportsCount`/`views`/`sellerRating`/
-`sellerRatingCount` إطلاقًا (الأخيران يكتبهما مُشغّل `recomputeSellerRating`
-فقط؛ لذلك `updateAd()` لا يُرسل `sellerRating` عند التعديل)، ولا يقدر يغيّر
+إلخ)، لكن لا يقدر يغيّر `featured`/`reportsCount`/`views` إطلاقًا، ولا يقدر يغيّر
 `status` إلا إلى `"deleted"` (حذفه الذاتي الناعم) أو `"ended"` (تُضبط تلقائيًا من
 `SaleConfirmationModal` عند تأكيد "تم البيع" — راجع قسم `commissions` أدناه) — لا
 يقدر مثلاً يُرجع إعلانه من `"flagged"` إلى `"active"` بنفسه ليتحايل على قرار إشراف.
@@ -117,8 +113,7 @@ admin/owner معفيّون من
 | name, email, phoneNumber | string |
 | accountType | `individual` \| `trader` |
 | role | `user` \| `admin` \| `owner` |
-| rating, adsCount, reportsCount | number | يجب أن تساوي 0 عند الإنشاء — مفروض في `firestore.rules`، وليس فقط لأن `createUserProfile()` يرسلها كذلك |
-| ratingCount | number، اختياري | عدد التقييمات التي يقوم عليها `rating` — يكتبه (مع `rating`) مُشغّل `recomputeSellerRating` فقط، والقاعدة تمنع المستخدم من تعديله ذاتيًا |
+| adsCount, reportsCount | number | يجب أن تساوي 0 عند الإنشاء — مفروض في `firestore.rules`، وليس فقط لأن `createUserProfile()` يرسلها كذلك |
 | banned | boolean، اختياري | غائب حتى يضبطه **owner** عبر `setUserBanned` (زر "حظر" في `/dashboard/users`، خلف مربع تأكيد) — القاعدة تقارنه بـ `.get("banned", false)` وليس الوصول المباشر، وإلا يرمي خطأ ويرفض تعديل الحساب لكل من لم يُحظر قط. **يُفرض فعليًا عند الدخول**: `login/page.tsx` يتحقق من الحقل فور نجاح `signInWithEmailAndPassword` ولا يُكمل الدخول إن كان `true`؛ و`AuthContext` يشترك بشكل حي (`onSnapshot`) على ملف أي مستخدم مسجّل دخول، فإن حُظر أثناء تصفّحه الموقع يُسجَّل خروجه فورًا برسالة "تم حظر حسابك من قبل إدارة المنصة." — وليس فقط عند محاولة دخول جديدة. |
 
 **الصلاحيات:**
@@ -134,12 +129,10 @@ Admin SDK، وهو ما لا يعمل إلا من كود خادم. لهذا هذ
 اسمها `deleteUserCompletely` (`frontend/functions/src/index.ts`)، تتحقق أولًا أن
 المستدعي فعلًا `role == "owner"` من ملفه في Firestore، ثم تحذف — في دفعات ≤400
 عملية — كل ما يخصّه: إعلاناته (`ads` حيث `sellerId`)، تعليقاته (`comments` حيث
-`userId`)، بلاغاته (`reports` حيث `reporterId`)، تقييماته التي أعطاها (`ratings`
-حيث `userId`) **والتقييمات التي تُركت على إعلاناته** (`ratings` حيث `adId in`
-معرّفات إعلاناته)، عمولاته (`commissions` حيث `sellerId`)، ملفه في `users`،
-ملفّاته في Storage (`ad-images/{uid}/`، `commission-receipts/{uid}/`)، وأخيرًا
-حسابه في Firebase Auth عبر `admin.auth().deleteUser()`. حذف التقييمات يُشغّل
-`recomputeSellerRating` تلقائيًا فيُصحّح تقييم البائعين الآخرين المتأثرين.
+`userId`)، بلاغاته (`reports` حيث `reporterId`)، عمولاته (`commissions` حيث
+`sellerId`)، ملفه في `users`، ملفّاته في Storage (`ad-images/{uid}/`،
+`commission-receipts/{uid}/`)، وأخيرًا حسابه في Firebase Auth عبر
+`admin.auth().deleteUser()`.
 **يتطلب خطة Blaze** — راجع `docs/cloud-functions-setup.md`.
 
 **الدوال:** `createUserProfile`, `getUserProfile`, `updateUserProfile`, `listAllUsersAdmin`, `setUserRole`, `setUserBanned`, `deleteUserPermanently` — في `frontend/src/lib/users.ts`.
@@ -266,31 +259,13 @@ admin) للقيمة التي كانت عليها قبل الاختبار، حت�
 
 **الدوال:** `createComment`, `listComments`, `listCommentsForAds`, `setCommentHidden`, `deleteComment` — في `frontend/src/lib/comments.ts`.
 
-## ratings
+## ratings — **ميزة ملغاة**
 
-| الحقل | النوع |
-|---|---|
-| adId, userId | string |
-| value | number (1–5) | مفروض في `firestore.rules` (`value is int && 1 <= value <= 5`) وليس فقط في الواجهة |
-| createdAt | number |
-
-معرّف المستند دائمًا `${adId}_${userId}` — تقييم واحد فقط لكل مستخدم لكل إعلان (upsert
-عند إعادة التقييم). متوسط **هذا الإعلان** يُحسب من جهة العميل بجمع تقييماته
-(يعرضه `<RatingStars>`)، ولا يُكتب على مستند الإعلان.
-
-**تقييم البائع (سمعته):** رقم منفصل وأوسع — متوسط كل التقييمات على كل إعلانات
-البائع. يحسبه مُشغّل Firestore `recomputeSellerRating`
-(`frontend/functions/src/index.ts`) عند أي كتابة على `ratings/{ratingId}`،
-ويكتبه في `users/{sellerId}.rating` (+ `ratingCount`) ويُظلّله على `sellerRating`
-(+ `sellerRatingCount`) في كل إعلانات البائع. هذه الحقول لا يكتبها غير الدالة —
-القواعد تثبّتها على 0 عند الإنشاء وتمنع البائع من تعديلها. يظهر في صندوق
-"معلومات البائع" بصفحة الإعلان وفي الملف الشخصي.
-
-**الصلاحيات:** القراءة عامة. الإنشاء/التعديل لصاحب التقييم فقط (`userId == auth.uid`
-ومعرّف المستند مطابق)، **وبشرط ألا يكون صاحب التقييم هو نفسه بائع الإعلان** (القاعدة
-تتحقق من ذلك مباشرة عبر `get()` على مستند الإعلان). الحذف لصاحب التقييم أو admin/owner.
-
-**الدوال:** `submitRating`, `getMyRating`, `listRatings`, `getAverageRating` — في `frontend/src/lib/ratings.ts`.
+تقييم الإعلان/البائع أُزيل بالكامل بقرار المالك: لا واجهة (`RatingStars`
+و`src/lib/ratings.ts` محذوفان)، لا دوال، ولا حقول (`sellerRating` /
+`sellerRatingCount` / `rating` / `ratingCount` أُزيلت من النماذج). قاعدة
+المجموعة `allow read, write: if false;` — أي مستندات تقييم قديمة في Firestore
+خاملة ولا يمكن قراءتها أو تعديلها من العميل.
 
 ## المصادقة (Auth)
 
@@ -335,7 +310,7 @@ Phone Authentication** (ميزة Google الأصلية، لا مزوّد SMS خ�
 ## Cloud Functions (`frontend/functions/`)
 
 أول كود خادم (server-side / Admin SDK) في هذا المشروع — كل شيء آخر يتصل
-بـ Firestore مباشرة من المتصفح. أربع دوال `onCall` ومُشغّل Firestore واحد في
+بـ Firestore مباشرة من المتصفح. أربع دوال `onCall` في
 `frontend/functions/src/index.ts`، منطقة `us-central1`، **بدون أي أسرار
 مطلوبة** (لا مزوّد SMS خارجي بعد التحول لـ Firebase Phone Auth):
 
@@ -345,13 +320,12 @@ Phone Authentication** (ميزة Google الأصلية، لا مزوّد SMS خ�
 | `completePhoneReset` | onCall | هوية phone-auth مؤقتة (بعد نجاح `confirm()`) | تصديق الجلسة بعد تحقق Firebase نفسها من الرمز |
 | `resetPasswordWithOtp` | onCall | أي زائر | التغيير الفعلي لكلمة المرور عبر Admin SDK |
 | `deleteUserCompletely` | onCall | owner فقط (يتحقق من `role` داخليًا) | حذف مستخدم نهائيًا من Firestore و Storage و Auth معًا |
-| `recomputeSellerRating` | onDocumentWritten `ratings/{ratingId}` | تلقائي | إعادة حساب `users.rating` / `ad.sellerRating` عند أي تغيير تقييم |
 
 **إعدادات Firebase Auth المفعّلة برمجيًا** (عبر Identity Platform Admin API
 مباشرة، بلا أي نقرة يدوية في Console): مزوّد الدخول بالجوال (`signIn.phoneNumber.enabled`)،
-وسياسة مناطق SMS (`smsRegionConfig.allowlistOnly.allowedRegions`) مضبوطة
-على دول الخليج (SA, AE, KW, QA, BH, OM) — كانت فارغة افتراضيًا، وقائمة فارغة
-تعني حظر كل الأرقام.
+وسياسة مناطق SMS (`smsRegionConfig.allowlistOnly.allowedRegions`) — يجب ضبطها
+على **السعودية فقط (SA)** بما أن المنصة صارت سعودية فقط. قائمة فارغة تعني حظر
+كل الأرقام.
 
 **يتطلب خطة Blaze (الدفع حسب الاستخدام)** على مشروع Firebase — Cloud Functions
 لا تعمل على الخطة المجانية (Spark) إطلاقًا، بصرف النظر عن عدم وجود أسرار
