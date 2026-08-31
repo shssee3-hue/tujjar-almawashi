@@ -1,36 +1,28 @@
-# إعداد Cloud Functions + Storage
+# Cloud Functions — غير منشورة (تتطلب خطة Blaze)
 
-## المتطلب الوحيد: خطة Blaze
+المشروع على خطة Firebase **المجانية (Spark)**. Cloud Functions **و** Firebase
+Storage كلاهما يتطلب ترقية إلى **Blaze** (الدفع حسب الاستخدام)، لذا لا شيء في
+`frontend/functions/` منشور حاليًا، و`firebase functions:list` يرجع فارغًا.
 
-Cloud Functions **و** Firebase Storage كلاهما يتطلب أن يكون مشروع Firebase على
-خطة **Blaze** (الدفع حسب الاستخدام). لا يوجد أي مزوّد خارجي أو مفتاح API —
-رسائل التحقق عبر Firebase Phone Authentication من Google نفسها، وتفعيل "الدخول
-بالجوال" وسياسة مناطق SMS تمّا برمجيًا.
+كود `functions/src/index.ts` باقٍ في المستودع (ويُبنى في CI للتحقق من صحته)
+لترقية مستقبلية محتملة. حتى ذلك الحين، البدائل المستخدمة على الخطة المجانية:
 
-تأكد من الترقية من:
-https://console.firebase.google.com/project/tujjar-almawashi/usage/details
-
-## النشر
-
-من مجلد `frontend/`:
-
-```bash
-firebase deploy --only functions,storage,firestore:rules,firestore:indexes
-```
-
-الدوال المنشورة (`frontend/functions/src/index.ts`, منطقة `us-central1`):
-
-| الدالة | النوع |
+| الميزة | البديل المجاني الحالي |
 |---|---|
-| `startPhoneReset`, `completePhoneReset`, `resetPasswordWithOtp` | onCall — تدفّق استعادة كلمة المرور بالجوال |
-| `deleteUserCompletely` | onCall — حذف مستخدم نهائيًا (Firestore + Storage + Auth) |
+| استعادة كلمة المرور | رابط بريد من Firebase Auth (`sendPasswordResetEmail`) — `src/lib/passwordReset.ts` |
+| استعادة عبر الجوال/OTP | غير مفعّلة (تحتاج `startPhoneReset` / `resetPasswordWithOtp` ⇐ Admin SDK ⇐ Blaze) |
+| حذف مستخدم نهائيًا | حذف بيانات Firestore من جهة العميل (المالك يملك صلاحية الحذف في القواعد)؛ حساب الدخول في Auth يُحذف يدويًا من Firebase Console ← Authentication |
+| صور الإعلانات | Base64 داخل مستند Firestore بدل Firebase Storage |
 
-## بعد أول نشر لـ Storage
+## عند الترقية إلى Blaze لاحقًا
 
-شغّل سكربت ترحيل الصور القديمة (Base64 داخل Firestore ← Storage) لمرة واحدة —
-راجع [`../frontend/scripts/README.md`](../frontend/scripts/README.md).
+1. فعّل الخطة: https://console.firebase.google.com/project/tujjar-almawashi/usage/details
+2. أعِد كود Storage/الدوال (راجع سجل فرع `feat/storage-rating-hardening-ci`).
+3. `firebase deploy --only functions,storage,firestore:rules,firestore:indexes`
 
-## الفهارس
+## الاستضافة
 
-`firebase deploy --only firestore:indexes` ينشئ الفهارس المركّبة الجديدة
-اللازمة لترقيم `listAds` من جهة الخادم (قد تستغرق دقائق حتى تُبنى).
+الموقع الأساسي على **Cloudflare Pages** (نشر تلقائي من `main`، بلا بطاقة).
+راجع [`cloudflare-pages-setup.md`](./cloudflare-pages-setup.md). قواعد
+Firestore والفهارس تُنشر عبر `firebase deploy --only firestore:rules,firestore:indexes`
+(تعمل على الخطة المجانية).

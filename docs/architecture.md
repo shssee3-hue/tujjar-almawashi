@@ -9,12 +9,15 @@ Firebase من المتصفح، وقواعد Firestore Security Rules تفرض ك
 ```
 المتصفح
   │
-  ├─ Firebase Auth (Email/Password + التحقق بالجوال OTP)
-  ├─ Cloud Firestore (البيانات + قواعد RBAC)
-  ├─ Firebase Storage (صور الإعلانات وإيصالات العمولة)
-  ├─ Cloud Functions (عمليات Admin SDK: استعادة كلمة المرور، وحذف مستخدم)
-  └─ Firebase Hosting (تصدير Next.js الثابت)
+  ├─ Firebase Auth (Email/Password؛ استعادة كلمة المرور عبر رابط بريد)
+  ├─ Cloud Firestore (البيانات + قواعد RBAC، والصور كـ Base64 داخل المستند)
+  └─ الاستضافة: Cloudflare Pages (تصدير Next.js الثابت، نشر تلقائي من GitHub)
 ```
+
+> المشروع على خطة Firebase **المجانية (Spark)**. Firebase Storage و Cloud
+> Functions يتطلبان خطة Blaze ولا يُستخدمان — راجع
+> [`cloud-functions-setup.md`](./cloud-functions-setup.md). كود `functions/`
+> باقٍ في المستودع لترقية مستقبلية محتملة لكنه غير منشور.
 
 ## لماذا بدون Backend منفصل؟
 
@@ -45,17 +48,11 @@ Firebase من المتصفح، وقواعد Firestore Security Rules تفرض ك
 
 ## تخزين الصور
 
-الصور تُضغط من جهة المتصفح (`browser-image-compression` → JPEG صغير) ثم
-تُرفع إلى **Firebase Storage**، ولا يُخزَّن في مستند Firestore سوى رابط
-التنزيل. المسارات (راجع [`../frontend/storage.rules`](../frontend/storage.rules)):
-
-| المسار | المحتوى | القراءة | الكتابة |
-|---|---|---|---|
-| `ad-images/{uid}/…` | صور إعلانات البائع | عامة | صاحب `uid` فقط، صور ≤ 2MB |
-| `commission-receipts/{uid}/…` | إيصالات دفع «تم البيع» | صاحب `uid` (المشرف يفتح الرابط المُوقَّع المخزَّن على المستند) | صاحب `uid` فقط |
-
-> الإعلانات القديمة كانت تخزّن الصور كـ Base64 Data URI داخل المستند نفسه؛
-> سكربت `frontend/scripts/migrate-images-to-storage.mjs` ينقلها لمرة واحدة.
+الصور (صور الإعلانات وإيصالات «تم البيع») تُضغط من جهة المتصفح
+(`browser-image-compression` → JPEG صغير ≤ 0.35MB) وتُخزَّن كـ **Base64 Data
+URI مباشرة داخل مستند Firestore**. Firebase Storage كان سيتجنّب تضخّم المستند
+لكنه يتطلب خطة Blaze غير المستخدمة هنا. الضغط في
+[`../frontend/src/lib/image.ts`](../frontend/src/lib/image.ts).
 
 ## تصفّح الإعلانات
 

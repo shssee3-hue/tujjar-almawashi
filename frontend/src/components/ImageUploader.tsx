@@ -2,19 +2,16 @@
 
 import { useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { fileToCompressedBlob } from "@/lib/image";
-import { uploadAdImage, deleteByUrl } from "@/lib/storage";
+import { filesToCompressedDataUrls } from "@/lib/image";
 
 const MAX_IMAGES = 6;
 
 export default function ImageUploader({
   images,
   onChange,
-  uid,
 }: {
   images: string[];
   onChange: (images: string[]) => void;
-  uid: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -30,27 +27,17 @@ export default function ImageUploader({
     const files = Array.from(fileList).slice(0, remaining);
     setLoading(true);
     try {
-      // Compress then upload each to Cloud Storage; the ad doc only ever
-      // stores the resulting download URLs, never the image bytes.
-      const urls: string[] = [];
-      for (const file of files) {
-        const blob = await fileToCompressedBlob(file);
-        urls.push(await uploadAdImage(uid, blob));
-      }
-      onChange([...images, ...urls]);
+      const dataUrls = await filesToCompressedDataUrls(files);
+      onChange([...images, ...dataUrls]);
     } catch {
-      toast.error("تعذر رفع إحدى الصور");
+      toast.error("تعذر معالجة إحدى الصور");
     } finally {
       setLoading(false);
     }
   }
 
   function removeAt(index: number) {
-    const removed = images[index];
     onChange(images.filter((_, i) => i !== index));
-    // Best-effort: drop the orphaned Storage object. A no-op for a legacy
-    // Base64 entry on an ad created before the Storage migration.
-    void deleteByUrl(removed);
   }
 
   return (

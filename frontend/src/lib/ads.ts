@@ -116,8 +116,7 @@ export async function listAds(
   // client-side narrowing of the fetched page (a page may therefore show
   // fewer than pageSize rows when one is active). Legacy ads written before
   // the `category` field existed are normalised to "livestock" by
-  // scripts/migrate-images-to-storage.mjs so the equality filter still finds
-  // them.
+  // scripts/backfill-ad-category.mjs so the equality filter still finds them.
   const constraints: QueryConstraint[] = [where("status", "==", "active")];
   if (filters.category) constraints.push(where("category", "==", filters.category));
   if (filters.animalType) constraints.push(where("animalType", "==", filters.animalType));

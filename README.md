@@ -14,12 +14,15 @@ tujjar-almawashi/
 
 ## التقنيات المستخدمة
 
-- **Next.js** (App Router) + **React**
-- **Firebase**: Auth (Email/Password + التحقق بالجوال OTP) + Firestore +
-  Storage + Cloud Functions + Hosting
+- **Next.js** (App Router) + **React** — تصدير ثابت
+- **Firebase** (خطة مجانية / Spark): Auth (Email/Password، استعادة كلمة
+  المرور برابط بريد) + Firestore (البيانات والصور Base64 والقواعد)
+- **الاستضافة**: Cloudflare Pages (نشر تلقائي من GitHub)
 - **Tailwind CSS v4**
 - **الاختبارات**: `vitest` + مُحاكي Firestore لقواعد `firestore.rules`، وCI عبر
   GitHub Actions
+- `frontend/functions/` (Cloud Functions) و Firebase Storage يتطلبان خطة
+  Blaze — الكود موجود لكنه غير منشور
 
 ## طريقة التشغيل
 

@@ -22,7 +22,7 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 | sellerId, sellerName, sellerType | — | مخزّنة مباشرة على الإعلان (denormalized) |
 | phoneNumber, whatsapp | string | |
 | showCallButton, showWhatsappButton | boolean | تتحكم بظهور زر الاتصال/واتساب للمشترين — كلاهما `false` افتراضيًا؛ الرقم لا يظهر تلقائيًا أبدًا |
-| images | string[] | روابط تنزيل Firebase Storage (`ad-images/{uid}/…`). الإعلانات القديمة قد تحمل Data URI بصيغة base64 حتى يُشغَّل سكربت الترحيل |
+| images | string[] | Base64 Data URI مضغوطة، مخزّنة على المستند مباشرة (لا Firebase Storage — يتطلب Blaze) |
 | views, reportsCount | number | |
 | status | `active` \| `ended` \| `flagged` \| `deleted` | |
 | featured | boolean | |
@@ -123,17 +123,14 @@ admin/owner معفيّون من
 - الحذف: **owner** فقط (حذف مباشر لمستند Firestore فقط — راجع "الحذف النهائي" أدناه للحذف الكامل الفعلي).
 
 **الحذف النهائي (زر "🗑️ حذف نهائي" في `/dashboard/users`، خلف مربع تأكيد):**
-حذف حساب مستخدم بالكامل — لا يمكن تنفيذه من المتصفح وحده مهما كانت صلاحيات
-Firestore، لأن حذف حساب Auth **مستخدم آخر** (غير الحساب المسجّل دخوله حاليًا) يتطلب
-Admin SDK، وهو ما لا يعمل إلا من كود خادم. لهذا هذا الإجراء ينفَّذ عبر Cloud Function
-اسمها `deleteUserCompletely` (`frontend/functions/src/index.ts`)، تتحقق أولًا أن
-المستدعي فعلًا `role == "owner"` من ملفه في Firestore، ثم تحذف — في دفعات ≤400
-عملية — كل ما يخصّه: إعلاناته (`ads` حيث `sellerId`)، تعليقاته (`comments` حيث
-`userId`)، بلاغاته (`reports` حيث `reporterId`)، عمولاته (`commissions` حيث
-`sellerId`)، ملفه في `users`، ملفّاته في Storage (`ad-images/{uid}/`،
-`commission-receipts/{uid}/`)، وأخيرًا حسابه في Firebase Auth عبر
-`admin.auth().deleteUser()`.
-**يتطلب خطة Blaze** — راجع `docs/cloud-functions-setup.md`.
+`deleteUserPermanently` في `frontend/src/lib/users.ts` تحذف — **من جهة العميل**
+وفي دفعات ≤450 عملية — كل بيانات المستخدم في Firestore: إعلاناته (`ads` حيث
+`sellerId`)، تعليقاته (`comments` حيث `userId`)، بلاغاته (`reports` حيث
+`reporterId`)، عمولاته (`commissions` حيث `sellerId`)، وملفه في `users`.
+القواعد تسمح بذلك لأن `isSystemOwner()` يملك صلاحية `delete` على هذه المجموعات.
+**حساب الدخول نفسه في Firebase Auth يبقى** — حذفه يتطلب Admin SDK (⇐ Cloud
+Function ⇐ خطة Blaze، غير مستخدمة)، فيُحذف يدويًا من Firebase Console ←
+Authentication. (كود `deleteUserCompletely` في `functions/` باقٍ لترقية مستقبلية.)
 
 **الدوال:** `createUserProfile`, `getUserProfile`, `updateUserProfile`, `listAllUsersAdmin`, `setUserRole`, `setUserBanned`, `deleteUserPermanently` — في `frontend/src/lib/users.ts`.
 
@@ -195,7 +192,7 @@ Admin SDK، وهو ما لا يعمل إلا من كود خادم. لهذا هذ
 | commissionRate | number | نسخة من `settings/site.commissionRate` وقت الإنشاء (تُجمَّد على المستند، فلا يتغيّر احتساب عمولة قديمة لو عدّل المدير النسبة لاحقًا) |
 | commissionAmount | number | `saleAmount * commissionRate / 100`، محسوبة في الواجهة |
 | paymentMethod | `applepay` \| `bank` | |
-| receiptFile | string | رابط تنزيل Firebase Storage (`commission-receipts/{uid}/…`). المدير يفتحه عبر الرابط المُوقَّع المخزَّن هنا، فلا حاجة لأن تسمح قواعد Storage بقراءته |
+| receiptFile | string | إيصال الدفع، Base64 Data URI مضغوطة (نفس أسلوب `images` في `ads` — لا Firebase Storage) |
 | status | `pending` \| `approved` \| `rejected` | `pending` إلزاميًا عند الإنشاء |
 | createdAt | number | |
 | reviewedAt | number، اختياري | تُضبط من admin/owner عند تغيير الحالة |
@@ -272,81 +269,37 @@ admin) للقيمة التي كانت عليها قبل الاختبار، حت�
 Firebase Authentication — Email/Password. الدوال: `registerUser`, `loginUser`,
 `authErrorMessage` في `frontend/src/lib/auth.ts`.
 
-## password_resets
+## استعادة كلمة المرور
 
-سجلات جلسة "نسيت كلمة المرور" عبر رقم الجوال — تدفق ذو خطوة واحدة في
-الواجهة الآن (`/forgot-password`، حالات داخلية: phone → otp → reset، بدل
-ثلاث صفحات منفصلة كما كان سابقًا، لتفادي فقدان حالة `ConfirmationResult`
-عبر تنقّل بين صفحات). كل الحقول والمنطق يعيش في Cloud Functions
-(`frontend/functions/src/index.ts`) — لا يوجد أي كود عميل يقرأ أو يكتب هذه
-المجموعة مباشرة. **الرمز نفسه (OTP) لا يُخزَّن هنا إطلاقًا ولا يمرّ على أي
-خادم من عندنا أصلًا** — التوليد والإرسال والتحقق بالكامل عبر **Firebase
-Phone Authentication** (ميزة Google الأصلية، لا مزوّد SMS خارجي ولا حساب
-شركة ثالثة)، فهذا المستند يتتبّع فقط "جلسة إعادة التعيين" المرتبطة
-برقم/حساب معيّن.
+عبر **رابط بريد إلكتروني من Firebase Auth** (`sendPasswordResetEmail`) —
+Google ترسل الرسالة وتستضيف صفحة «اضبط كلمة مرور جديدة» بنفسها. لا Cloud
+Functions، لا SMS، لا خطة Blaze. صفحة `/forgot-password` من خطوة واحدة:
+إدخال البريد ⇒ رسالة تأكيد محايدة (نفسها سواء كان البريد مسجّلًا أم لا،
+فلا تكشف تسجيل الحساب).
 
-| الحقل | النوع | ملاحظات |
-|---|---|---|
-| phone | string | |
-| uid | string | معرّف حساب Firebase Auth المطابق — يُستخدم لاحقًا في `admin.auth().updateUser()` |
-| createdAt, expiresAt | number | صلاحية الجلسة 3 دقائق (`RESET_SESSION_TTL_MS`) |
-| used | boolean | يُضبط `true` إمّا بعد نجاح تغيير كلمة المرور، أو فور إنشاء طلب أحدث لنفس الرقم (يُبطل كل الطلبات السابقة غير المستخدمة)، أو عند انتهاء صلاحية الجلسة |
-| verified | boolean | `true` بعد أن يتحقق العميل من الرمز مباشرة مع Firebase (`confirmationResult.confirm()`) ثم يُبلّغ الخادم بذلك — شرط لازم قبل السماح بتغيير كلمة المرور في الخطوة التالية |
+**الدوال (عميل):** `sendResetEmail`, `resetEmailErrorMessage` — في
+`frontend/src/lib/passwordReset.ts`.
 
-**الصلاحيات:** `allow read, write: if false;` في `firestore.rules` — القراءة/الكتابة
-حصرًا عبر Admin SDK داخل Cloud Functions (تتجاوز قواعد الأمان أصلًا)، فلا حاجة
-لفتح أي وصول للعميل، وزائر غير مسجّل دخول لا يملك أصلًا سياق مصادقة Firestore
-يُمنح عبره وصولًا.
+> مجموعة `password_resets` و`functions/src/index.ts` (`startPhoneReset` /
+> `completePhoneReset` / `resetPasswordWithOtp`) بقايا تدفّق الجوال/OTP —
+> غير مستخدمة (تتطلب Admin SDK ⇐ Blaze). القاعدة `allow read, write: if false`.
 
-**التدفق الكامل:**
-1. `startPhoneReset({ phone })` (Cloud Function) — يبحث عن `users` حيث `phoneNumber == phone`. **لا يكشف إن كان الرقم مسجّلًا** (تفادي تعداد الأرقام — F-07): إن لم يوجد الرقم يُرجع استجابة بنفس الشكل مع `resetId` عشوائي مبهم لا تقدر أي خطوة لاحقة التعامل معه (ولا يُنشأ سجل جلسة). إن وُجد: يُبطل أي طلبات سابقة غير مستخدمة لنفس الرقم، وينشئ سجل جلسة. في الحالتين يُعيد `{ resetId, expiresAt }` فقط — لا يرسل أي رسالة بنفسه. و`completePhoneReset` توحّد كل حالات الفشل في رسالة عامة واحدة.
-2. العميل يستدعي `signInWithPhoneNumber()` مباشرة (Firebase Auth SDK، عبر reCAPTCHA غير مرئي مثبَّت في `#recaptcha-container`) — **هذا ما يرسل الرسالة النصية فعليًا**، بنية Google التحتية مباشرة، بلا أي كود خادم من عندنا.
-3. المستخدم يُدخل الرمز؛ العميل يستدعي `confirmationResult.confirm(otp)` — Firebase نفسها تتحقق من الرمز (ترمي `auth/invalid-verification-code` أو `auth/code-expired` عند الخطأ). عند النجاح يصبح العميل موقّعًا دخوله مؤقتًا كهوية "phone-auth" تحمل مطالبة `phone_number` موثّقة من Google.
-4. العميل يستدعي `completePhoneReset({ resetId })` (Cloud Function) وهو بهذه الهوية المؤقتة — يقارن `request.auth.token.phone_number` مع رقم جلسة `resetId` (يمنع إكمال جلسة برقم تم التحقق من رقم مختلف)، ويتحقق من عدم الانتهاء/الاستخدام، ثم يضبط `verified=true`. العميل بعدها **يسجّل خروجه فورًا** من هذه الهوية المؤقتة (`signOut`) — فهي لا تُستخدم إلا كوسيلة لإثبات امتلاك الرقم، وليست جلسة دخول حقيقية.
-5. `resetPasswordWithOtp({ resetId, newPassword })` — يتطلب `verified==true && used==false`؛ يتحقق من قوة كلمة المرور (6 خانات فأكثر، أرقام وحروف) على الخادم أيضًا وليس فقط في الواجهة، يستدعي `admin.auth().updateUser(uid, { password })`، ثم يضبط `used=true`.
+## Cloud Functions (`frontend/functions/`) — غير منشورة
 
-**الدوال (عميل):** `startPhoneReset`, `sendPhoneOtp`, `confirmPhoneOtp`, `resetPasswordWithOtp`, `passwordResetErrorMessage` — في `frontend/src/lib/passwordReset.ts`.
+المشروع على الخطة المجانية (Spark)؛ Cloud Functions تتطلب Blaze، فلا شيء
+منشور و`firebase functions:list` فارغ. الكود باقٍ ويُبنى في CI للتحقق فقط.
+البدائل المجانية الحالية:
 
-## Cloud Functions (`frontend/functions/`)
+| كان يعتمد على | البديل الآن |
+|---|---|
+| `startPhoneReset` / `completePhoneReset` / `resetPasswordWithOtp` | رابط بريد `sendPasswordResetEmail` |
+| `deleteUserCompletely` | حذف بيانات Firestore من جهة العميل (المالك)؛ حساب Auth يدويًا من الكونسول |
 
-أول كود خادم (server-side / Admin SDK) في هذا المشروع — كل شيء آخر يتصل
-بـ Firestore مباشرة من المتصفح. أربع دوال `onCall` في
-`frontend/functions/src/index.ts`، منطقة `us-central1`، **بدون أي أسرار
-مطلوبة** (لا مزوّد SMS خارجي بعد التحول لـ Firebase Phone Auth):
+راجع [`cloud-functions-setup.md`](./cloud-functions-setup.md).
 
-| الدالة | النوع | من يستدعيها | الغرض |
-|---|---|---|---|
-| `startPhoneReset` | onCall | أي زائر (غير مسجّل دخول) | الخطوة 1 من نسيان كلمة المرور — فتح جلسة دون كشف تسجيل الرقم |
-| `completePhoneReset` | onCall | هوية phone-auth مؤقتة (بعد نجاح `confirm()`) | تصديق الجلسة بعد تحقق Firebase نفسها من الرمز |
-| `resetPasswordWithOtp` | onCall | أي زائر | التغيير الفعلي لكلمة المرور عبر Admin SDK |
-| `deleteUserCompletely` | onCall | owner فقط (يتحقق من `role` داخليًا) | حذف مستخدم نهائيًا من Firestore و Storage و Auth معًا |
+## الصور
 
-**إعدادات Firebase Auth المفعّلة برمجيًا** (عبر Identity Platform Admin API
-مباشرة، بلا أي نقرة يدوية في Console): مزوّد الدخول بالجوال (`signIn.phoneNumber.enabled`)،
-وسياسة مناطق SMS (`smsRegionConfig.allowlistOnly.allowedRegions`) — يجب ضبطها
-على **السعودية فقط (SA)** بما أن المنصة صارت سعودية فقط. قائمة فارغة تعني حظر
-كل الأرقام.
-
-**يتطلب خطة Blaze (الدفع حسب الاستخدام)** على مشروع Firebase — Cloud Functions
-لا تعمل على الخطة المجانية (Spark) إطلاقًا، بصرف النظر عن عدم وجود أسرار
-مطلوبة الآن. راجع `docs/cloud-functions-setup.md`.
-
-## Firebase Storage (`frontend/storage.rules`)
-
-صور الإعلانات وإيصالات العمولة تُرفع إلى Cloud Storage؛ مستند Firestore لا
-يخزّن سوى رابط التنزيل (الذي يحمل رمز وصول خاصًّا به عبر `getDownloadURL`).
-
-| المسار | المحتوى | القراءة | الكتابة | الحذف |
-|---|---|---|---|---|
-| `ad-images/{uid}/…` | صور إعلانات البائع | عامة | صاحب `uid`، `image/*` و≤ 2MB | صاحب `uid` |
-| `commission-receipts/{uid}/…` | إيصالات «تم البيع» | صاحب `uid` فقط (المدير يفتح الرابط المُوقَّع) | صاحب `uid`، `image/*` و≤ 2MB | صاحب `uid` |
-
-كل ما عداهما `allow read, write: if false`.
-
-**الدوال:** `uploadAdImage`, `uploadCommissionReceipt`, `deleteByUrl` — في
-`frontend/src/lib/storage.ts`. الضغط قبل الرفع في `frontend/src/lib/image.ts`
-(`fileToCompressedBlob`).
-
-**الترحيل:** `frontend/scripts/migrate-images-to-storage.mjs` ينقل صور
-Base64 القديمة من مستندات Firestore إلى Storage لمرة واحدة (راجع
-`frontend/scripts/README.md`).
+صور الإعلانات (`ads.images`) وإيصالات العمولة (`commissions.receiptFile`)
+تُخزَّن كـ **Base64 Data URI مضغوطة داخل مستند Firestore** — لا Firebase
+Storage (يتطلب Blaze). الضغط في `frontend/src/lib/image.ts`
+(`fileToCompressedDataUrl` / `filesToCompressedDataUrls`).
