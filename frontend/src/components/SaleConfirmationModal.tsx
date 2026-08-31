@@ -6,8 +6,7 @@ import { getSiteSettings } from "@/lib/settings";
 import { createCommission } from "@/lib/commissions";
 import { updateAd } from "@/lib/ads";
 import { SiteSettings, CommissionPaymentMethod } from "@/lib/types";
-import { fileToCompressedBlob } from "@/lib/image";
-import { uploadCommissionReceipt } from "@/lib/storage";
+import { fileToCompressedDataUrl } from "@/lib/image";
 
 function formatPrice(n: number) {
   return new Intl.NumberFormat("ar-SA").format(n);
@@ -55,11 +54,10 @@ export default function SaleConfirmationModal({
     if (!file) return;
     setUploading(true);
     try {
-      const blob = await fileToCompressedBlob(file);
-      setReceiptFile(await uploadCommissionReceipt(sellerId, blob));
+      setReceiptFile(await fileToCompressedDataUrl(file));
       setReceiptFileName(file.name);
     } catch {
-      toast.error("تعذر رفع صورة الإيصال");
+      toast.error("تعذر معالجة صورة الإيصال");
     } finally {
       setUploading(false);
     }

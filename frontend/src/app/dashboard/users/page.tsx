@@ -8,9 +8,7 @@ import OwnerGuard from "@/components/OwnerGuard";
 
 type PendingAction = { type: "ban" | "delete"; user: UserProfile };
 
-// A callable Cloud Function's HttpsError carries our own Arabic message
-// straight through to err.message on the client.
-function callableErrorMessage(error: unknown): string {
+function actionErrorMessage(error: unknown): string {
   const err = error as { message?: string };
   return err?.message || "حدث خطأ غير متوقع، حاول مرة أخرى";
 }
@@ -59,11 +57,11 @@ function UsersContent() {
       } else {
         await deleteUserPermanently(pending.user.id);
         setUsers((prev) => prev.filter((x) => x.id !== pending.user.id));
-        toast.success("تم حذف الحساب نهائيًا");
+        toast.success("تم حذف بيانات المستخدم. لحذف حساب الدخول نهائيًا: Firebase Console ← Authentication");
       }
       setPending(null);
     } catch (err) {
-      toast.error(callableErrorMessage(err));
+      toast.error(actionErrorMessage(err));
     } finally {
       setWorking(false);
     }

@@ -6,11 +6,13 @@ import {
   getDocs,
   collection,
   query,
+  where,
   orderBy,
   limit as fsLimit,
+  writeBatch,
+  type DocumentReference,
 } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
-import { db, functions } from "./firebase";
+import { db } from "./firebase";
 import { UserProfile } from "./types";
 
 export async function createUserProfile(
@@ -50,12 +52,29 @@ export async function setUserBanned(uid: string, banned: boolean) {
   await updateDoc(doc(db, "users", uid), { banned });
 }
 
-// Owner-only, backed by the deleteUserCompletely Cloud Function — permanent
-// deletion of another user's account (profile, ads, ratings, commissions,
-// AND their actual Firebase Auth account) needs Admin SDK privileges no
-// client can safely hold, so this is the one write in this file that isn't
-// a plain Firestore call. See functions/src/index.ts.
+// Owner-only. Deletes the user's Firestore data directly — firestore.rules
+// grants isSystemOwner() delete on users/ads/comments/commissions/reports.
+// The Firebase Auth login itself can only be removed with the Admin SDK
+// (Cloud Function + Blaze plan, not used here), so it stays until removed by
+// hand from Firebase console -> Authentication.
 export async function deleteUserPermanently(uid: string) {
-  const fn = httpsCallable(functions, "deleteUserCompletely");
-  await fn({ targetUid: uid });
+  const cols: [string, string][] = [
+    ["ads", "sellerId"],
+    ["comments", "userId"],
+    ["commissions", "sellerId"],
+    ["reports", "reporterId"],
+  ];
+  const refs: DocumentReference[] = [];
+  for (const [col, field] of cols) {
+    const snap = await getDocs(query(collection(db, col), where(field, "==", uid)));
+    snap.forEach((d) => refs.push(d.ref));
+  }
+  refs.push(doc(db, "users", uid));
+
+  // Client write batches cap at 500 operations.
+  for (let i = 0; i < refs.length; i += 450) {
+    const batch = writeBatch(db);
+    refs.slice(i, i + 450).forEach((r) => batch.delete(r));
+    await batch.commit();
+  }
 }

@@ -658,7 +658,7 @@ function AddAdForm() {
 
         <div>
           <label className="mb-2 block text-sm font-medium">الصور *</label>
-          <ImageUploader images={images} onChange={setImages} uid={firebaseUser.uid} />
+          <ImageUploader images={images} onChange={setImages} />
         </div>
 
         <button
