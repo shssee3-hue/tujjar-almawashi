@@ -16,15 +16,25 @@
  * client side for that part of the flow.
  */
 
+import { randomUUID } from "node:crypto";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { getStorage } from "firebase-admin/storage";
 
 initializeApp();
 const db = getFirestore();
 
 const RESET_SESSION_TTL_MS = 3 * 60 * 1000; // 3 minutes, per spec
+
+// Firestore caps `in` filters at 30 values and a write batch at 500 ops;
+// most helpers below fan work out in chunks to stay under those limits.
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
 
 /**
  * Step 1: seller enters their phone number on the "forgot password" page.
@@ -44,8 +54,16 @@ export const startPhoneReset = onCall({ region: "us-central1" }, async (request)
     .where("phoneNumber", "==", phone)
     .limit(1)
     .get();
+  // Do NOT reveal whether the number is registered (that would be a phone
+  // enumeration oracle). For an unknown number, return a normally-shaped
+  // response with an opaque resetId that no later step can act on — the
+  // client still runs the Firebase Phone Auth SMS step, and the flow simply
+  // fails generically at completePhoneReset ("طلب غير صالح").
   if (usersSnap.empty) {
-    throw new HttpsError("not-found", "هذا الرقم غير مسجّل في المنصة");
+    return {
+      resetId: randomUUID(),
+      expiresAt: Date.now() + RESET_SESSION_TTL_MS,
+    };
   }
   const userDoc = usersSnap.docs[0];
 
@@ -91,22 +109,28 @@ export const completePhoneReset = onCall({ region: "us-central1" }, async (reque
     throw new HttpsError("unauthenticated", "يجب التحقق من رقم الجوال أولًا");
   }
 
+  // One generic failure for every "this session can't be completed" case
+  // (unknown/opaque resetId, already used, expired, phone mismatch) so the
+  // response never distinguishes a registered number from an unknown one.
+  const invalid = () =>
+    new HttpsError("failed-precondition", "تعذّر التحقق، يرجى طلب رمز جديد");
+
   const ref = db.collection("password_resets").doc(resetId);
   const snap = await ref.get();
   if (!snap.exists) {
-    throw new HttpsError("not-found", "طلب غير صالح، يرجى طلب رمز جديد");
+    throw invalid();
   }
   const data = snap.data() as { phone: string; used: boolean; expiresAt: number };
 
   if (data.used) {
-    throw new HttpsError("failed-precondition", "انتهت صلاحية الرمز، يرجى طلب رمز جديد");
+    throw invalid();
   }
   if (Date.now() > data.expiresAt) {
     await ref.update({ used: true });
-    throw new HttpsError("deadline-exceeded", "انتهت صلاحية الرمز، يرجى طلب رمز جديد");
+    throw invalid();
   }
   if (data.phone !== verifiedPhone) {
-    throw new HttpsError("permission-denied", "رقم الجوال المتحقق منه لا يطابق هذا الطلب");
+    throw invalid();
   }
 
   await ref.update({ verified: true });
@@ -152,8 +176,8 @@ export const resetPasswordWithOtp = onCall({ region: "us-central1" }, async (req
 
 /**
  * Owner-only: permanently deletes a user — their Firestore profile, ads,
- * ratings, and commission records, plus (the part only Admin SDK can do)
- * their actual Firebase Auth account.
+ * comments, filed reports, commission records, and uploaded Storage files,
+ * plus (the part only Admin SDK can do) their actual Firebase Auth account.
  */
 export const deleteUserCompletely = onCall({ region: "us-central1" }, async (request) => {
   if (!request.auth) {
@@ -172,18 +196,44 @@ export const deleteUserCompletely = onCall({ region: "us-central1" }, async (req
     throw new HttpsError("failed-precondition", "لا يمكنك حذف حسابك الخاص من هنا");
   }
 
-  const [adsSnap, ratingsSnap, commissionsSnap] = await Promise.all([
+  const [adsSnap, commissionsSnap, commentsSnap, reportsSnap] = await Promise.all([
     db.collection("ads").where("sellerId", "==", targetUid).get(),
-    db.collection("ratings").where("userId", "==", targetUid).get(),
     db.collection("commissions").where("sellerId", "==", targetUid).get(),
+    db.collection("comments").where("userId", "==", targetUid).get(),
+    db.collection("reports").where("reporterId", "==", targetUid).get(),
   ]);
 
-  const batch = db.batch();
-  adsSnap.docs.forEach((d) => batch.delete(d.ref));
-  ratingsSnap.docs.forEach((d) => batch.delete(d.ref));
-  commissionsSnap.docs.forEach((d) => batch.delete(d.ref));
-  batch.delete(db.collection("users").doc(targetUid));
-  await batch.commit();
+  // Delete in batches of 400 to stay under the 500-op limit for a prolific
+  // seller.
+  const refs = new Map<string, FirebaseFirestore.DocumentReference>();
+  for (const d of [
+    ...adsSnap.docs,
+    ...commissionsSnap.docs,
+    ...commentsSnap.docs,
+    ...reportsSnap.docs,
+  ]) {
+    refs.set(d.ref.path, d.ref);
+  }
+  refs.set(`users/${targetUid}`, db.collection("users").doc(targetUid));
+
+  for (const group of chunk([...refs.values()], 400)) {
+    const batch = db.batch();
+    group.forEach((ref) => batch.delete(ref));
+    await batch.commit();
+  }
+
+  // The seller's uploaded ad photos and payment receipts. Best-effort —
+  // the Firestore records are already gone and Auth deletion still follows.
+  await Promise.all([
+    getStorage()
+      .bucket()
+      .deleteFiles({ prefix: `ad-images/${targetUid}/` })
+      .catch(() => undefined),
+    getStorage()
+      .bucket()
+      .deleteFiles({ prefix: `commission-receipts/${targetUid}/` })
+      .catch(() => undefined),
+  ]);
 
   await getAuth()
     .deleteUser(targetUid)

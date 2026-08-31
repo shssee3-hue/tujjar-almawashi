@@ -151,7 +151,8 @@ export default function ForgotPasswordPage() {
               نسيت كلمة المرور؟
             </h1>
             <p className="mb-6 text-center text-sm text-black/50">
-              أدخل رقم جوالك المسجّل في المنصة، وسنرسل لك رمز تحقق لإعادة تعيين كلمة المرور.
+              أدخل رقم جوالك. إن كان مسجّلاً لدينا فستصلك رسالة نصية برمز تحقق
+              لإعادة تعيين كلمة المرور.
             </p>
             <form onSubmit={handlePhoneSubmit} className="flex flex-col gap-4">
               <div>

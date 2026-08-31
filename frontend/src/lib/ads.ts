@@ -10,8 +10,12 @@ import {
   where,
   orderBy,
   limit as fsLimit,
+  startAfter,
   increment,
   runTransaction,
+  type QueryConstraint,
+  type QueryDocumentSnapshot,
+  type DocumentData,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { Ad, AdCategory } from "./types";
@@ -44,6 +48,15 @@ export interface AdFilters {
   breed?: string;
   region?: string;
 }
+
+export interface AdsPage {
+  ads: Ad[];
+  // Pass back into listAds({ cursor }) to fetch the next page; null once the
+  // last page has been reached.
+  cursor: QueryDocumentSnapshot<DocumentData> | null;
+}
+
+export const ADS_PAGE_SIZE = 12;
 
 export async function createAd(data: Omit<Ad, "id" | "adCode" | "createdAt" | "updatedAt" | "views" | "reportsCount" | "status">) {
   const now = Date.now();
@@ -86,28 +99,41 @@ export async function incrementViews(id: string) {
   }
 }
 
-export async function listAds(filters: AdFilters = {}, max = 300): Promise<Ad[]> {
-  // Only the always-present status filter is applied server-side, alongside
-  // a fixed newest-first order; every other filter (category/animalType/
-  // breed/region) is applied client-side below — the search system only
-  // ever narrows by section and region, so there's no need for more than
-  // this one sort order and its one composite index.
-  const q = query(
-    adsCol,
-    where("status", "==", "active"),
-    orderBy("createdAt", "desc"),
-    fsLimit(max)
-  );
-  const snap = await getDocs(q);
+export async function listAds(
+  filters: AdFilters = {},
+  opts: {
+    pageSize?: number;
+    cursor?: QueryDocumentSnapshot<DocumentData> | null;
+  } = {}
+): Promise<AdsPage> {
+  const pageSize = opts.pageSize ?? ADS_PAGE_SIZE;
+
+  // section (category OR animalType) and region are filtered server-side —
+  // backed by the composite indexes in firestore.indexes.json — so a
+  // section/region page fetches roughly one screenful of ads instead of the
+  // entire active set. breed/subCategory are a rarely-used tertiary
+  // refinement that would multiply the index count, so they stay a
+  // client-side narrowing of the fetched page (a page may therefore show
+  // fewer than pageSize rows when one is active). Legacy ads written before
+  // the `category` field existed are normalised to "livestock" by
+  // scripts/migrate-images-to-storage.mjs so the equality filter still finds
+  // them.
+  const constraints: QueryConstraint[] = [where("status", "==", "active")];
+  if (filters.category) constraints.push(where("category", "==", filters.category));
+  if (filters.animalType) constraints.push(where("animalType", "==", filters.animalType));
+  if (filters.region) constraints.push(where("region", "==", filters.region));
+  constraints.push(orderBy("createdAt", "desc"));
+  if (opts.cursor) constraints.push(startAfter(opts.cursor));
+  constraints.push(fsLimit(pageSize));
+
+  const snap = await getDocs(query(adsCol, ...constraints));
   let ads = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Ad, "id">) }));
 
-  if (filters.category) ads = ads.filter((a) => (a.category || "livestock") === filters.category);
   if (filters.subCategory) ads = ads.filter((a) => a.subCategory === filters.subCategory);
-  if (filters.animalType) ads = ads.filter((a) => a.animalType === filters.animalType);
   if (filters.breed) ads = ads.filter((a) => a.breed === filters.breed);
-  if (filters.region) ads = ads.filter((a) => a.region === filters.region);
 
-  return ads;
+  const cursor = snap.docs.length === pageSize ? snap.docs[snap.docs.length - 1] : null;
+  return { ads, cursor };
 }
 
 export async function listAdsBySeller(sellerId: string): Promise<Ad[]> {

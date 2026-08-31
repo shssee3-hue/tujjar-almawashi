@@ -190,7 +190,6 @@ function AddAdForm() {
         sellerId: firebaseUser.uid,
         sellerName: profile.name,
         sellerType: profile.accountType,
-        sellerRating: profile.rating || 0,
         phoneNumber,
         whatsapp,
         showCallButton,
@@ -659,7 +658,7 @@ function AddAdForm() {
 
         <div>
           <label className="mb-2 block text-sm font-medium">الصور *</label>
-          <ImageUploader images={images} onChange={setImages} />
+          <ImageUploader images={images} onChange={setImages} uid={firebaseUser.uid} />
         </div>
 
         <button

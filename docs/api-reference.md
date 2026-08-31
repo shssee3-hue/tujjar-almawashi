@@ -17,12 +17,12 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 | isNegotiable | boolean | |
 | animalType, breed, age | string | تُملأ فقط عندما category=="livestock" |
 | weight | number \| null | |
-| country, region | string | إلزاميان |
+| country, region | string | إلزاميان — `country` دائمًا `"السعودية"` للإعلانات الجديدة |
 | city | string | اختياري |
-| sellerId, sellerName, sellerType, sellerRating | — | مخزّنة مباشرة على الإعلان (denormalized) |
+| sellerId, sellerName, sellerType | — | مخزّنة مباشرة على الإعلان (denormalized) |
 | phoneNumber, whatsapp | string | |
 | showCallButton, showWhatsappButton | boolean | تتحكم بظهور زر الاتصال/واتساب للمشترين — كلاهما `false` افتراضيًا؛ الرقم لا يظهر تلقائيًا أبدًا |
-| images | string[] | Data URI بصيغة base64 |
+| images | string[] | روابط تنزيل Firebase Storage (`ad-images/{uid}/…`). الإعلانات القديمة قد تحمل Data URI بصيغة base64 حتى يُشغَّل سكربت الترحيل |
 | views, reportsCount | number | |
 | status | `active` \| `ended` \| `flagged` \| `deleted` | |
 | featured | boolean | |
@@ -34,10 +34,9 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 (إقرار العمولة الإلزامي)، و`views`/`reportsCount` تساوي 0، و`price >= 0`،
 و`category` ضمن الأقسام الخمسة الفعّالة (`offers` مستثناة عمدًا — قسم متوقف
 لم يعد متاحًا للإعلانات الجديدة، راجع الملاحظة أدناه)، و`featured` غائب أو
-`false`، و`sellerName`/`sellerType`/`sellerRating` مطابقة فعليًا لملفه الشخصي —
+`false`، و`sellerName`/`sellerType` مطابقة فعليًا لملفه الشخصي —
 كل هذا يمنع استدعاء مباشر لـ Firestore API (متجاوزًا `createAd()`) من إنشاء
-إعلان "مميز" مجانًا، أو بعدد مشاهدات/بلاغات مزيّف، أو بسعر سالب أو قسم وهمي، أو منتحلاً اسمًا أو صفة تاجر
-أو تقييمًا لا يملكه صاحبه فعليًا.
+إعلان "مميز" مجانًا، أو بعدد مشاهدات/بلاغات مزيّف، أو بسعر سالب أو قسم وهمي، أو منتحلاً اسمًا أو صفة تاجر.
 
 **التعديل:** صاحب الإعلان يقدر يعدّل محتوى إعلانه بحرية (العنوان، السعر، الصور،
 إلخ)، لكن لا يقدر يغيّر `featured`/`reportsCount`/`views` إطلاقًا، ولا يقدر يغيّر
@@ -87,6 +86,14 @@ admin/owner معفيّون من
 `q`/`sort`/`minPrice`/`maxPrice`/`city` بعد الآن). الصفحة الرئيسية لا تعرض أي
 إعلانات — فقط الأقسام ومربع بحث (قسم + منطقة) ينقل مباشرة إلى `/ads`.
 
+**الترقيم (pagination):** `listAds(filters, { pageSize?, cursor? })` يفلتر
+القسم (`category`/`animalType`) والمنطقة **من جهة الخادم** ويُرجع
+`{ ads, cursor }` — 12 إعلانًا لكل صفحة، و`cursor` غير `null` يعني وجود
+المزيد (زر "عرض المزيد" في `AdsExplorer`). الفهارس المركّبة اللازمة في
+`firestore.indexes.json`. `breed`/`subCategory` تبقى فلترة داخل الصفحة
+المجلوبة فقط. الإعلانات القديمة بلا حقل `category` يُسندها سكربت الترحيل إلى
+`"livestock"` كي يجدها فلتر المساواة.
+
 **قفل حقل القسم داخل صفحة قسم محدَّد:** عند الوصول لـ `/ads` عبر رابط يحمل
 `animalType` أو `category` (كما يحدث من الصفحة الرئيسية أو أي بطاقة قسم)، حقل
 "القسم" في شريط البحث يُقفل تلقائيًا على القسم الحالي فقط (`disabled`، ويعرض
@@ -106,7 +113,7 @@ admin/owner معفيّون من
 | name, email, phoneNumber | string |
 | accountType | `individual` \| `trader` |
 | role | `user` \| `admin` \| `owner` |
-| rating, adsCount, reportsCount | number | يجب أن تساوي 0 عند الإنشاء — مفروض في `firestore.rules`، وليس فقط لأن `createUserProfile()` يرسلها كذلك |
+| adsCount, reportsCount | number | يجب أن تساوي 0 عند الإنشاء — مفروض في `firestore.rules`، وليس فقط لأن `createUserProfile()` يرسلها كذلك |
 | banned | boolean، اختياري | غائب حتى يضبطه **owner** عبر `setUserBanned` (زر "حظر" في `/dashboard/users`، خلف مربع تأكيد) — القاعدة تقارنه بـ `.get("banned", false)` وليس الوصول المباشر، وإلا يرمي خطأ ويرفض تعديل الحساب لكل من لم يُحظر قط. **يُفرض فعليًا عند الدخول**: `login/page.tsx` يتحقق من الحقل فور نجاح `signInWithEmailAndPassword` ولا يُكمل الدخول إن كان `true`؛ و`AuthContext` يشترك بشكل حي (`onSnapshot`) على ملف أي مستخدم مسجّل دخول، فإن حُظر أثناء تصفّحه الموقع يُسجَّل خروجه فورًا برسالة "تم حظر حسابك من قبل إدارة المنصة." — وليس فقط عند محاولة دخول جديدة. |
 
 **الصلاحيات:**
@@ -116,16 +123,17 @@ admin/owner معفيّون من
 - الحذف: **owner** فقط (حذف مباشر لمستند Firestore فقط — راجع "الحذف النهائي" أدناه للحذف الكامل الفعلي).
 
 **الحذف النهائي (زر "🗑️ حذف نهائي" في `/dashboard/users`، خلف مربع تأكيد):**
-حذف حساب مستخدم بالكامل — بياناته، إعلاناته، تقييماته، وسجلات عمولته، **بالإضافة**
-لحسابه الفعلي في Firebase Auth — لا يمكن تنفيذه من المتصفح وحده مهما كانت صلاحيات
+حذف حساب مستخدم بالكامل — لا يمكن تنفيذه من المتصفح وحده مهما كانت صلاحيات
 Firestore، لأن حذف حساب Auth **مستخدم آخر** (غير الحساب المسجّل دخوله حاليًا) يتطلب
 Admin SDK، وهو ما لا يعمل إلا من كود خادم. لهذا هذا الإجراء ينفَّذ عبر Cloud Function
 اسمها `deleteUserCompletely` (`frontend/functions/src/index.ts`)، تتحقق أولًا أن
-المستدعي فعلًا `role == "owner"` من ملفه في Firestore، ثم تحذف بالتتابع: إعلانات
-البائع (`ads` حيث `sellerId`)، تقييماته (`ratings` حيث `userId`)، عمولاته
-(`commissions` حيث `sellerId`)، ملفه في `users`، وأخيرًا حسابه في Firebase Auth
-عبر `admin.auth().deleteUser()`. **يتطلب خطة Blaze** — راجع
-`docs/cloud-functions-setup.md`.
+المستدعي فعلًا `role == "owner"` من ملفه في Firestore، ثم تحذف — في دفعات ≤400
+عملية — كل ما يخصّه: إعلاناته (`ads` حيث `sellerId`)، تعليقاته (`comments` حيث
+`userId`)، بلاغاته (`reports` حيث `reporterId`)، عمولاته (`commissions` حيث
+`sellerId`)، ملفه في `users`، ملفّاته في Storage (`ad-images/{uid}/`،
+`commission-receipts/{uid}/`)، وأخيرًا حسابه في Firebase Auth عبر
+`admin.auth().deleteUser()`.
+**يتطلب خطة Blaze** — راجع `docs/cloud-functions-setup.md`.
 
 **الدوال:** `createUserProfile`, `getUserProfile`, `updateUserProfile`, `listAllUsersAdmin`, `setUserRole`, `setUserBanned`, `deleteUserPermanently` — في `frontend/src/lib/users.ts`.
 
@@ -187,7 +195,7 @@ Admin SDK، وهو ما لا يعمل إلا من كود خادم. لهذا هذ
 | commissionRate | number | نسخة من `settings/site.commissionRate` وقت الإنشاء (تُجمَّد على المستند، فلا يتغيّر احتساب عمولة قديمة لو عدّل المدير النسبة لاحقًا) |
 | commissionAmount | number | `saleAmount * commissionRate / 100`، محسوبة في الواجهة |
 | paymentMethod | `applepay` \| `bank` | |
-| receiptFile | string | إيصال الدفع، Data URI بصيغة base64 (نفس أسلوب `images` في `ads` — لا Cloud Storage) |
+| receiptFile | string | رابط تنزيل Firebase Storage (`commission-receipts/{uid}/…`). المدير يفتحه عبر الرابط المُوقَّع المخزَّن هنا، فلا حاجة لأن تسمح قواعد Storage بقراءته |
 | status | `pending` \| `approved` \| `rejected` | `pending` إلزاميًا عند الإنشاء |
 | createdAt | number | |
 | reviewedAt | number، اختياري | تُضبط من admin/owner عند تغيير الحالة |
@@ -251,24 +259,13 @@ admin) للقيمة التي كانت عليها قبل الاختبار، حت�
 
 **الدوال:** `createComment`, `listComments`, `listCommentsForAds`, `setCommentHidden`, `deleteComment` — في `frontend/src/lib/comments.ts`.
 
-## ratings
+## ratings — **ميزة ملغاة**
 
-| الحقل | النوع |
-|---|---|
-| adId, userId | string |
-| value | number (1–5) | مفروض في `firestore.rules` (`value is int && 1 <= value <= 5`) وليس فقط في الواجهة |
-| createdAt | number |
-
-معرّف المستند دائمًا `${adId}_${userId}` — تقييم واحد فقط لكل مستخدم لكل إعلان (upsert
-عند إعادة التقييم). المتوسط يُحسب من جهة العميل بجمع كل تقييمات الإعلان، ولا يمسّ
-مستند الإعلان نفسه أو ملف المستخدم — تفاديًا لتوسيع صلاحيات الكتابة على مجموعتي
-`ads`/`users` المُحكمتين أصلًا.
-
-**الصلاحيات:** القراءة عامة. الإنشاء/التعديل لصاحب التقييم فقط (`userId == auth.uid`
-ومعرّف المستند مطابق)، **وبشرط ألا يكون صاحب التقييم هو نفسه بائع الإعلان** (القاعدة
-تتحقق من ذلك مباشرة عبر `get()` على مستند الإعلان). الحذف لصاحب التقييم أو admin/owner.
-
-**الدوال:** `submitRating`, `getMyRating`, `listRatings`, `getAverageRating` — في `frontend/src/lib/ratings.ts`.
+تقييم الإعلان/البائع أُزيل بالكامل بقرار المالك: لا واجهة (`RatingStars`
+و`src/lib/ratings.ts` محذوفان)، لا دوال، ولا حقول (`sellerRating` /
+`sellerRatingCount` / `rating` / `ratingCount` أُزيلت من النماذج). قاعدة
+المجموعة `allow read, write: if false;` — أي مستندات تقييم قديمة في Firestore
+خاملة ولا يمكن قراءتها أو تعديلها من العميل.
 
 ## المصادقة (Auth)
 
@@ -302,7 +299,7 @@ Phone Authentication** (ميزة Google الأصلية، لا مزوّد SMS خ�
 يُمنح عبره وصولًا.
 
 **التدفق الكامل:**
-1. `startPhoneReset({ phone })` (Cloud Function) — يبحث عن `users` حيث `phoneNumber == phone`؛ إن لم يوجد يرمي `not-found` ("هذا الرقم غير مسجّل في المنصة"). يُبطل أي طلبات سابقة غير مستخدمة لنفس الرقم، وينشئ سجل جلسة. يُعيد `{ resetId, expiresAt }` فقط — لا يرسل أي رسالة بنفسه.
+1. `startPhoneReset({ phone })` (Cloud Function) — يبحث عن `users` حيث `phoneNumber == phone`. **لا يكشف إن كان الرقم مسجّلًا** (تفادي تعداد الأرقام — F-07): إن لم يوجد الرقم يُرجع استجابة بنفس الشكل مع `resetId` عشوائي مبهم لا تقدر أي خطوة لاحقة التعامل معه (ولا يُنشأ سجل جلسة). إن وُجد: يُبطل أي طلبات سابقة غير مستخدمة لنفس الرقم، وينشئ سجل جلسة. في الحالتين يُعيد `{ resetId, expiresAt }` فقط — لا يرسل أي رسالة بنفسه. و`completePhoneReset` توحّد كل حالات الفشل في رسالة عامة واحدة.
 2. العميل يستدعي `signInWithPhoneNumber()` مباشرة (Firebase Auth SDK، عبر reCAPTCHA غير مرئي مثبَّت في `#recaptcha-container`) — **هذا ما يرسل الرسالة النصية فعليًا**، بنية Google التحتية مباشرة، بلا أي كود خادم من عندنا.
 3. المستخدم يُدخل الرمز؛ العميل يستدعي `confirmationResult.confirm(otp)` — Firebase نفسها تتحقق من الرمز (ترمي `auth/invalid-verification-code` أو `auth/code-expired` عند الخطأ). عند النجاح يصبح العميل موقّعًا دخوله مؤقتًا كهوية "phone-auth" تحمل مطالبة `phone_number` موثّقة من Google.
 4. العميل يستدعي `completePhoneReset({ resetId })` (Cloud Function) وهو بهذه الهوية المؤقتة — يقارن `request.auth.token.phone_number` مع رقم جلسة `resetId` (يمنع إكمال جلسة برقم تم التحقق من رقم مختلف)، ويتحقق من عدم الانتهاء/الاستخدام، ثم يضبط `verified=true`. العميل بعدها **يسجّل خروجه فورًا** من هذه الهوية المؤقتة (`signOut`) — فهي لا تُستخدم إلا كوسيلة لإثبات امتلاك الرقم، وليست جلسة دخول حقيقية.
@@ -317,19 +314,39 @@ Phone Authentication** (ميزة Google الأصلية، لا مزوّد SMS خ�
 `frontend/functions/src/index.ts`، منطقة `us-central1`، **بدون أي أسرار
 مطلوبة** (لا مزوّد SMS خارجي بعد التحول لـ Firebase Phone Auth):
 
-| الدالة | من يستدعيها | الغرض |
-|---|---|---|
-| `startPhoneReset` | أي زائر (غير مسجّل دخول) | الخطوة 1 من نسيان كلمة المرور — تحقق من الرقم + فتح جلسة |
-| `completePhoneReset` | هوية phone-auth مؤقتة (بعد نجاح `confirm()`) | تصديق الجلسة بعد تحقق Firebase نفسها من الرمز |
-| `resetPasswordWithOtp` | أي زائر | التغيير الفعلي لكلمة المرور عبر Admin SDK |
-| `deleteUserCompletely` | owner فقط (يتحقق من `role` داخليًا) | حذف مستخدم نهائيًا من Firestore و Auth معًا |
+| الدالة | النوع | من يستدعيها | الغرض |
+|---|---|---|---|
+| `startPhoneReset` | onCall | أي زائر (غير مسجّل دخول) | الخطوة 1 من نسيان كلمة المرور — فتح جلسة دون كشف تسجيل الرقم |
+| `completePhoneReset` | onCall | هوية phone-auth مؤقتة (بعد نجاح `confirm()`) | تصديق الجلسة بعد تحقق Firebase نفسها من الرمز |
+| `resetPasswordWithOtp` | onCall | أي زائر | التغيير الفعلي لكلمة المرور عبر Admin SDK |
+| `deleteUserCompletely` | onCall | owner فقط (يتحقق من `role` داخليًا) | حذف مستخدم نهائيًا من Firestore و Storage و Auth معًا |
 
 **إعدادات Firebase Auth المفعّلة برمجيًا** (عبر Identity Platform Admin API
 مباشرة، بلا أي نقرة يدوية في Console): مزوّد الدخول بالجوال (`signIn.phoneNumber.enabled`)،
-وسياسة مناطق SMS (`smsRegionConfig.allowlistOnly.allowedRegions`) مضبوطة
-على دول الخليج (SA, AE, KW, QA, BH, OM) — كانت فارغة افتراضيًا، وقائمة فارغة
-تعني حظر كل الأرقام.
+وسياسة مناطق SMS (`smsRegionConfig.allowlistOnly.allowedRegions`) — يجب ضبطها
+على **السعودية فقط (SA)** بما أن المنصة صارت سعودية فقط. قائمة فارغة تعني حظر
+كل الأرقام.
 
 **يتطلب خطة Blaze (الدفع حسب الاستخدام)** على مشروع Firebase — Cloud Functions
 لا تعمل على الخطة المجانية (Spark) إطلاقًا، بصرف النظر عن عدم وجود أسرار
 مطلوبة الآن. راجع `docs/cloud-functions-setup.md`.
+
+## Firebase Storage (`frontend/storage.rules`)
+
+صور الإعلانات وإيصالات العمولة تُرفع إلى Cloud Storage؛ مستند Firestore لا
+يخزّن سوى رابط التنزيل (الذي يحمل رمز وصول خاصًّا به عبر `getDownloadURL`).
+
+| المسار | المحتوى | القراءة | الكتابة | الحذف |
+|---|---|---|---|---|
+| `ad-images/{uid}/…` | صور إعلانات البائع | عامة | صاحب `uid`، `image/*` و≤ 2MB | صاحب `uid` |
+| `commission-receipts/{uid}/…` | إيصالات «تم البيع» | صاحب `uid` فقط (المدير يفتح الرابط المُوقَّع) | صاحب `uid`، `image/*` و≤ 2MB | صاحب `uid` |
+
+كل ما عداهما `allow read, write: if false`.
+
+**الدوال:** `uploadAdImage`, `uploadCommissionReceipt`, `deleteByUrl` — في
+`frontend/src/lib/storage.ts`. الضغط قبل الرفع في `frontend/src/lib/image.ts`
+(`fileToCompressedBlob`).
+
+**الترحيل:** `frontend/scripts/migrate-images-to-storage.mjs` ينقل صور
+Base64 القديمة من مستندات Firestore إلى Storage لمرة واحدة (راجع
+`frontend/scripts/README.md`).

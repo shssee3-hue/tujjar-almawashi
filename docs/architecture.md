@@ -9,8 +9,10 @@ Firebase من المتصفح، وقواعد Firestore Security Rules تفرض ك
 ```
 المتصفح
   │
-  ├─ Firebase Auth (Email/Password)
+  ├─ Firebase Auth (Email/Password + التحقق بالجوال OTP)
   ├─ Cloud Firestore (البيانات + قواعد RBAC)
+  ├─ Firebase Storage (صور الإعلانات وإيصالات العمولة)
+  ├─ Cloud Functions (عمليات Admin SDK: استعادة كلمة المرور، وحذف مستخدم)
   └─ Firebase Hosting (تصدير Next.js الثابت)
 ```
 
@@ -43,9 +45,36 @@ Firebase من المتصفح، وقواعد Firestore Security Rules تفرض ك
 
 ## تخزين الصور
 
-الصور تُضغط من جهة المتصفح (`browser-image-compression`) وتُخزَّن كنص
-Base64 Data URI مباشرة داخل مستند الإعلان في Firestore — بدلًا من Cloud
-Storage، لتفادي الحاجة لتفعيل خطة Blaze (الدفع بحسب الاستخدام).
+الصور تُضغط من جهة المتصفح (`browser-image-compression` → JPEG صغير) ثم
+تُرفع إلى **Firebase Storage**، ولا يُخزَّن في مستند Firestore سوى رابط
+التنزيل. المسارات (راجع [`../frontend/storage.rules`](../frontend/storage.rules)):
+
+| المسار | المحتوى | القراءة | الكتابة |
+|---|---|---|---|
+| `ad-images/{uid}/…` | صور إعلانات البائع | عامة | صاحب `uid` فقط، صور ≤ 2MB |
+| `commission-receipts/{uid}/…` | إيصالات دفع «تم البيع» | صاحب `uid` (المشرف يفتح الرابط المُوقَّع المخزَّن على المستند) | صاحب `uid` فقط |
+
+> الإعلانات القديمة كانت تخزّن الصور كـ Base64 Data URI داخل المستند نفسه؛
+> سكربت `frontend/scripts/migrate-images-to-storage.mjs` ينقلها لمرة واحدة.
+
+## تصفّح الإعلانات
+
+`listAds()` في [`../frontend/src/lib/ads.ts`](../frontend/src/lib/ads.ts)
+يفلتر من جهة الخادم بالقسم (`category`/`animalType`) والمنطقة ويُرقّم النتائج
+بمؤشّر (`startAfter` + `limit`, 12 لكل صفحة) بدل جلب كل الإعلانات النشطة
+وفلترتها في المتصفح. الفهارس المركّبة اللازمة في
+[`../frontend/firestore.indexes.json`](../frontend/firestore.indexes.json).
+حقلا `breed`/`subCategory` يبقيان فلترة داخل الصفحة المجلوبة فقط.
+
+النطاق الجغرافي: **السعودية فقط**. حقل `country` باقٍ على نموذج الإعلان
+(وقائمة `COUNTRIES` تحوي `السعودية` وحدها) حتى تُعرَض الإعلانات القديمة من
+دول الخليج، لكن الإعلانات الجديدة لا يمكن أن تكون إلا `السعودية`.
+
+## التقييم
+
+ميزة تقييم الإعلان/البائع **ملغاة**. مجموعة `ratings` مغلقة بالكامل في
+القواعد (`allow read, write: if false`)، ولا واجهة ولا دوال تتعامل معها؛ أي
+مستندات تقييم قديمة في Firestore خاملة.
 
 ## الاستضافة
 

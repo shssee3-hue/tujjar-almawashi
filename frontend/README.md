@@ -1,7 +1,7 @@
 # تجّار المواشي — Tujjar Al-Mawashi
 
-منصة ويب لبيع وشراء المواشي (أغنام، ماعز، إبل، أبقار، خيول، دواجن) في السعودية
-ودول الخليج.
+منصة ويب لبيع وشراء المواشي (أغنام، ماعز، إبل، أبقار، خيول، دواجن) في المملكة
+العربية السعودية.
 
 ## Tech Stack
 
@@ -10,16 +10,19 @@
   with all authorization enforced by `firestore.rules` — no separate
   Node/Express server. See "لماذا هذا الـ Stack" below for why this differs
   from the originally proposed Node/Express + MongoDB/Vercel/Render stack.
-- **Auth:** Firebase Authentication, Email/Password provider
+- **Auth:** Firebase Authentication — Email/Password, plus phone/OTP for the
+  "forgot password" flow (Firebase Phone Authentication)
+- **Cloud Functions:** the few Admin-SDK-only operations — phone/OTP password
+  reset and permanent user deletion (`functions/`)
 - **Hosting:** Firebase Hosting (static export, `next build` with
   `output: "export"`). Note: the single-ad page is `/ad?id=<id>` rather than
   `/ad/<id>` — a static export has no server to resolve arbitrary dynamic
   path segments at request time, so a real per-ad path (as opposed to one
   fixed at build time) isn't reliable under this hosting model. A query
   string sidesteps that limitation entirely.
-- **Images:** compressed client-side (`browser-image-compression`) and stored
-  as base64 data URLs directly on the `ads` document — no Cloud Storage, so
-  no Blaze/billing plan is required.
+- **Images:** compressed client-side (`browser-image-compression`) and
+  uploaded to **Firebase Storage** (`ad-images/`, `commission-receipts/`);
+  the Firestore doc only stores the download URL. See `storage.rules`.
 
 ## لماذا هذا الـ Stack
 
@@ -55,10 +58,14 @@ src/
     dashboard/             # /dashboard/*  (محمية بـ AdminGuard)
   components/             # مكوّنات واجهة قابلة لإعادة الاستخدام
   contexts/AuthContext.tsx # حالة تسجيل الدخول + بروفايل المستخدم + الدور
-  lib/                    # طبقة الوصول لـ Firestore (ads/users/reports/...)
-firestore.rules            # قواعد الصلاحيات (RBAC)
+  lib/                    # طبقة الوصول لـ Firestore/Storage (ads/users/storage/...)
+functions/                 # Cloud Functions (Admin SDK: استعادة كلمة المرور، حذف مستخدم)
+tests/                     # اختبارات firestore.rules (vitest + المُحاكي)
+scripts/                   # سكربتات صيانة لمرة واحدة (ترحيل الصور، معالجة صور الأصول)
+firestore.rules            # قواعد صلاحيات Firestore (RBAC)
+storage.rules              # قواعد صلاحيات Firebase Storage
 firestore.indexes.json     # الفهارس المركّبة المطلوبة للاستعلامات
-firebase.json               # إعداد Firebase Hosting (تصدير ثابت)
+firebase.json               # إعداد Firebase (Hosting + Firestore + Storage + Functions + المُحاكي)
 ```
 
 ## نظام الأدوار: owner / admin / user
@@ -70,8 +77,8 @@ firebase.json               # إعداد Firebase Hosting (تصدير ثابت)
   `firestore.rules` نفسها، بحيث لا فائدة من تجاوز الواجهة.
 - **admin (مشرف)**: إدارة الإعلانات (عدا الحذف النهائي — حصري لـ owner)، البلاغات،
   السلالات، والمناطق.
-- **user (مستخدم)**: حساب عادي — إضافة/تعديل/نشر إعلاناته، التعليق، التقييم.
-- **بدون تسجيل دخول**: تصفح فقط — أي محاولة تفاعل (إضافة إعلان، تعليق، تقييم،
+- **user (مستخدم)**: حساب عادي — إضافة/تعديل/نشر إعلاناته، والتعليق.
+- **بدون تسجيل دخول**: تصفح فقط — أي محاولة تفاعل (إضافة إعلان، تعليق،
   مشاركة) تفتح نافذة تسجيل دخول/حساب جديد بدل توجيه المستخدم لصفحة أخرى.
 
 ## الأقسام (Categories)
@@ -113,9 +120,21 @@ cp .env.example .env.local
 npm run dev
 ```
 
+## الاختبارات
+
+```bash
+npm run test:rules     # اختبارات firestore.rules عبر المُحاكي (تحتاج Java 17)
+```
+
+تفاصيل و CI في [`../docs/testing.md`](../docs/testing.md).
+
 ## النشر
 
 ```bash
 npm run build          # ينتج مجلد out/ (static export)
-firebase deploy --only hosting,firestore
+firebase deploy --only hosting,firestore:rules,firestore:indexes,storage,functions
 ```
+
+> أول نشر بعد إضافة Storage: تأكّد من تفعيل خطة **Blaze**، وانشر
+> `storage` قبل تشغيل `scripts/migrate-images-to-storage.mjs` (راجع
+> [`scripts/README.md`](./scripts/README.md)).

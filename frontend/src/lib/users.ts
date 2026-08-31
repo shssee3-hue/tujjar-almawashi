@@ -15,12 +15,11 @@ import { UserProfile } from "./types";
 
 export async function createUserProfile(
   uid: string,
-  data: Omit<UserProfile, "id" | "createdAt" | "rating" | "adsCount" | "reportsCount" | "role">
+  data: Omit<UserProfile, "id" | "createdAt" | "adsCount" | "reportsCount" | "role">
 ) {
   await setDoc(doc(db, "users", uid), {
     ...data,
     role: "user",
-    rating: 0,
     adsCount: 0,
     reportsCount: 0,
     createdAt: Date.now(),

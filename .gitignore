@@ -19,6 +19,14 @@ frontend/.next/
 # firebase
 .firebase/
 firebase-debug.log
+firestore-debug.log
+ui-debug.log
+pubsub-debug.log
+database-debug.log
+
+# firebase emulator (rules tests)
+**/.firebase/
+firebase-export-*/
 
 # misc
 .DS_Store

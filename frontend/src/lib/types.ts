@@ -30,7 +30,6 @@ export interface Ad {
   sellerId: string;
   sellerName: string;
   sellerType: SellerType;
-  sellerRating: number;
   phoneNumber: string;
   whatsapp: string;
   images: string[];
@@ -51,7 +50,6 @@ export interface UserProfile {
   phoneNumber: string;
   email: string;
   accountType: AccountType;
-  rating: number;
   adsCount: number;
   reportsCount: number;
   role: UserRole;
@@ -132,12 +130,4 @@ export interface Comment {
   createdAt: number;
   replyToId?: string | null;
   hidden?: boolean;
-}
-
-export interface Rating {
-  id: string;
-  adId: string;
-  userId: string;
-  value: number;
-  createdAt: number;
 }
