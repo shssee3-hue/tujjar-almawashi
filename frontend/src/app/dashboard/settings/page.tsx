@@ -124,7 +124,7 @@ function SettingsContent() {
 
         <hr className="border-black/10" />
         <h2 className="-mb-2 font-bold text-brand-bg-dark">
-          نص إلزامي — قسمي "خدمات" و"نقل مواشي"
+          نص إلزامي — قسمَي «خدمات» و«نقل مواشي»
         </h2>
         <p className="-mt-3 text-xs text-black/40">
           يظهر كخانة ثابتة غير قابلة للتعديل داخل نموذج إضافة الإعلان، فقط

@@ -20,6 +20,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The Cloud Functions package has its own toolchain and tsconfig
+    // (see functions/); this config is for the Next.js app only.
+    "functions/**",
+    // One-off maintenance scripts, run by hand — not app code.
+    "scripts/**",
   ]),
 ]);
 
