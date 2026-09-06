@@ -13,7 +13,7 @@ import {
   type DocumentReference,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { UserProfile } from "./types";
+import { UserProfile, DeletionRequest } from "./types";
 
 export async function createUserProfile(
   uid: string,
@@ -56,6 +56,29 @@ export async function setUserCommissionBlock(uid: string, blocked: boolean) {
   await updateDoc(doc(db, "users", uid), { commissionBlock: blocked });
 }
 
+// PDPL "erase my account and data" request. Written by the user themselves
+// (id === their uid, one open request each); the owner sees it in
+// /dashboard/users and acts on it with deleteUserPermanently.
+export async function requestAccountDeletion(
+  uid: string,
+  data: { name: string; email: string }
+) {
+  await setDoc(doc(db, "deletionRequests", uid), {
+    uid,
+    name: data.name,
+    email: data.email,
+    requestedAt: Date.now(),
+    status: "open",
+  });
+}
+
+export async function listDeletionRequests(): Promise<DeletionRequest[]> {
+  const snap = await getDocs(
+    query(collection(db, "deletionRequests"), orderBy("requestedAt", "asc"))
+  );
+  return snap.docs.map((d) => d.data() as DeletionRequest);
+}
+
 // Owner-only. Deletes the user's Firestore data directly — firestore.rules
 // grants isSystemOwner() delete on users/ads/comments/commissions/reports.
 // The Firebase Auth login itself can only be removed with the Admin SDK
@@ -68,6 +91,7 @@ export async function deleteUserPermanently(uid: string) {
     ["comments", "userId"],
     ["commissions", "sellerId"],
     ["reports", "reporterId"],
+    ["deletionRequests", "uid"],
   ];
   const refs: DocumentReference[] = [];
   for (const [col, field] of cols) {

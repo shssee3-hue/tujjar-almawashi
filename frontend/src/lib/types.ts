@@ -151,3 +151,14 @@ export interface Comment {
   replyToId?: string | null;
   hidden?: boolean;
 }
+
+// deletionRequests/{uid} — a user's PDPL "delete my account and data" request.
+// The owner acts on it from /dashboard/users via deleteUserPermanently, then
+// removes the request. One doc per user (id === uid).
+export interface DeletionRequest {
+  uid: string;
+  name: string;
+  email: string;
+  requestedAt: number;
+  status: "open";
+}

@@ -35,7 +35,7 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!agreed) {
-      toast.error("يجب الموافقة على الشروط والأحكام");
+      toast.error("يجب الموافقة على الشروط والأحكام وسياسة الخصوصية");
       return;
     }
     if (password !== confirmPassword) {
@@ -141,9 +141,14 @@ export default function RegisterPage() {
             />
             <span>
               أوافق على{" "}
-              <Link href="/terms" className="font-bold text-brand-primary underline">
+              <Link href="/terms" target="_blank" className="font-bold text-brand-primary underline">
                 الشروط والأحكام
+              </Link>{" "}
+              و{" "}
+              <Link href="/privacy" target="_blank" className="font-bold text-brand-primary underline">
+                سياسة الخصوصية
               </Link>
+              ، وأوافق على جمع بياناتي ومعالجتها للأغراض الموضّحة فيها.
             </span>
           </label>
           <button

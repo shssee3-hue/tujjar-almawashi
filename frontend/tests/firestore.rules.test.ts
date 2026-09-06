@@ -509,6 +509,41 @@ describe("adsPrivate (seller contact numbers)", () => {
   });
 });
 
+describe("deletionRequests", () => {
+  const req = (over: Record<string, unknown> = {}) => ({
+    uid: BUYER,
+    name: "B",
+    email: "b@example.com",
+    requestedAt: 0,
+    status: "open",
+    ...over,
+  });
+
+  it("a user files only their own request, only as open", async () => {
+    await assertSucceeds(
+      setDoc(doc(asBuyer(), "deletionRequests", BUYER), req())
+    );
+    // someone else's uid
+    await assertFails(
+      setDoc(doc(asBuyer(), "deletionRequests", SELLER), req({ uid: SELLER }))
+    );
+    // pre-resolved status
+    await assertFails(
+      setDoc(doc(asBuyer(), "deletionRequests", BUYER), req({ status: "done" }))
+    );
+  });
+
+  it("only an admin may read or clear a request", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "deletionRequests", BUYER), req());
+    });
+    await assertFails(getDoc(doc(asBuyer(), "deletionRequests", BUYER)));
+    await assertSucceeds(getDoc(doc(asOwner(), "deletionRequests", BUYER)));
+    await assertFails(deleteDoc(doc(asBuyer(), "deletionRequests", BUYER)));
+    await assertSucceeds(deleteDoc(doc(asOwner(), "deletionRequests", BUYER)));
+  });
+});
+
 describe("password_resets", () => {
   it("is entirely closed to direct client access", async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {

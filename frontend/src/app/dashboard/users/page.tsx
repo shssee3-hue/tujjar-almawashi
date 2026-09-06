@@ -7,8 +7,9 @@ import {
   setUserBanned,
   setUserCommissionBlock,
   deleteUserPermanently,
+  listDeletionRequests,
 } from "@/lib/users";
-import { UserProfile } from "@/lib/types";
+import { UserProfile, DeletionRequest } from "@/lib/types";
 import OwnerGuard from "@/components/OwnerGuard";
 
 type PendingAction = { type: "ban" | "delete"; user: UserProfile };
@@ -30,12 +31,16 @@ function UsersContent() {
   const [search, setSearch] = useState("");
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [working, setWorking] = useState(false);
+  const [deletionRequests, setDeletionRequests] = useState<DeletionRequest[]>([]);
 
   useEffect(() => {
     listAllUsersAdmin()
       .then(setUsers)
       .finally(() => setLoading(false));
+    listDeletionRequests().then(setDeletionRequests).catch(() => {});
   }, []);
+
+  const deletionUids = new Set(deletionRequests.map((d) => d.uid));
 
   const filtered = users.filter((u) =>
     `${u.name} ${u.email} ${u.phoneNumber}`.toLowerCase().includes(search.toLowerCase())
@@ -74,6 +79,7 @@ function UsersContent() {
       } else {
         await deleteUserPermanently(pending.user.id);
         setUsers((prev) => prev.filter((x) => x.id !== pending.user.id));
+        setDeletionRequests((prev) => prev.filter((d) => d.uid !== pending.user.id));
         toast.success("تم حذف بيانات المستخدم. لحذف حساب الدخول نهائيًا: Firebase Console ← Authentication");
       }
       setPending(null);
@@ -95,6 +101,23 @@ function UsersContent() {
           className="w-72 rounded-xl border border-black/10 px-4 py-2 text-sm outline-none focus:border-brand-secondary"
         />
       </div>
+
+      {deletionRequests.length > 0 && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm">
+          <p className="mb-1 font-bold text-red-700">
+            طلبات حذف بيانات معلّقة ({deletionRequests.length}) — نفّذ «حذف نهائي»
+            خلال 30 يومًا من تاريخ الطلب
+          </p>
+          <ul className="list-inside list-disc text-red-700/80">
+            {deletionRequests.map((d) => (
+              <li key={d.uid}>
+                {d.name} — {d.email} —{" "}
+                {new Date(d.requestedAt).toLocaleDateString("ar-SA")}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-black/40">جاري التحميل...</p>
@@ -147,6 +170,11 @@ function UsersContent() {
                     {u.commissionBlock && (
                       <span className="mt-1 block rounded-full bg-orange-100 px-2 py-1 text-center text-xs font-bold text-orange-600">
                         عمولة غير مسددة
+                      </span>
+                    )}
+                    {deletionUids.has(u.id) && (
+                      <span className="mt-1 block rounded-full bg-red-100 px-2 py-1 text-center text-xs font-bold text-red-700">
+                        طلب حذف بيانات
                       </span>
                     )}
                   </td>

@@ -279,6 +279,18 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // deletionRequests/{userId} — a user's PDPL request to have their account
+    // and data erased. Id is pinned to the requester's uid (one open request
+    // per user); the owner reads them in /dashboard/users, then runs the
+    // actual deletion and clears the request.
+    match /deletionRequests/{userId} {
+      allow read: if isAdmin();
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == "open";
+      allow update, delete: if isAdmin();
+    }
+
     // password_resets/{resetId} — OTP records for the phone-based "forgot
     // password" flow. Every legitimate reader/writer is the Cloud Functions
     // in functions/src/index.ts, which use the Admin SDK and so bypass

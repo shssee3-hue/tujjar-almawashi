@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { listAdsBySeller, deleteAd } from "@/lib/ads";
-import { updateUserProfile } from "@/lib/users";
+import { updateUserProfile, requestAccountDeletion } from "@/lib/users";
 import { changeLoginEmail, authErrorMessage } from "@/lib/auth";
 import { listCommentsForAds } from "@/lib/comments";
 import { Ad, Comment } from "@/lib/types";
@@ -35,6 +35,7 @@ export default function ProfilePage() {
   const [newEmail, setNewEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [emailSaving, setEmailSaving] = useState(false);
+  const [deletionSent, setDeletionSent] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !firebaseUser) {
@@ -128,6 +129,25 @@ export default function ProfilePage() {
     }
   }
 
+  async function requestDeletion() {
+    if (
+      !confirm(
+        "سيتم إرسال طلب لحذف حسابك وجميع بياناتك (إعلاناتك، تعليقاتك، سجلات العمولة). تُعالَج خلال مدة لا تتجاوز 30 يومًا ولا يمكن التراجع بعد التنفيذ. هل تريد المتابعة؟"
+      )
+    )
+      return;
+    try {
+      await requestAccountDeletion(profile!.id, {
+        name: profile!.name,
+        email: profile!.email,
+      });
+      setDeletionSent(true);
+      toast.success("تم إرسال طلب حذف البيانات. ستتم المعالجة خلال 30 يومًا.");
+    } catch {
+      toast.error("تعذر إرسال الطلب، حاول مرة أخرى");
+    }
+  }
+
   async function handleDelete(id: string) {
     if (!confirm("هل تريد حذف هذا الإعلان؟")) return;
     await deleteAd(id);
@@ -218,6 +238,24 @@ export default function ProfilePage() {
                 className="mt-3 rounded-xl border border-brand-primary px-5 py-2.5 text-sm font-bold text-brand-primary disabled:opacity-50"
               >
                 {emailSaving ? "جاري الإرسال..." : "إرسال رابط التأكيد"}
+              </button>
+            </div>
+
+            <div className="sm:col-span-2 mt-2 border-t border-red-200 pt-5">
+              <h3 className="mb-1 text-sm font-bold text-red-700">
+                حذف الحساب والبيانات
+              </h3>
+              <p className="mb-3 text-xs text-black/40">
+                يحق لك طلب حذف حسابك وكل بياناتك وفق نظام حماية البيانات الشخصية.
+                تُعالَج الطلبات خلال مدة لا تتجاوز 30 يومًا.
+              </p>
+              <button
+                type="button"
+                onClick={requestDeletion}
+                disabled={deletionSent}
+                className="rounded-xl border border-red-300 px-5 py-2.5 text-sm font-bold text-red-700 disabled:opacity-50"
+              >
+                {deletionSent ? "تم إرسال الطلب" : "طلب حذف حسابي وبياناتي"}
               </button>
             </div>
           </div>
