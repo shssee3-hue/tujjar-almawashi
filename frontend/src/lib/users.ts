@@ -17,13 +17,11 @@ import { UserProfile } from "./types";
 
 export async function createUserProfile(
   uid: string,
-  data: Omit<UserProfile, "id" | "createdAt" | "adsCount" | "reportsCount" | "role">
+  data: Omit<UserProfile, "id" | "createdAt" | "role">
 ) {
   await setDoc(doc(db, "users", uid), {
     ...data,
     role: "user",
-    adsCount: 0,
-    reportsCount: 0,
     createdAt: Date.now(),
   });
 }
@@ -52,6 +50,12 @@ export async function setUserBanned(uid: string, banned: boolean) {
   await updateDoc(doc(db, "users", uid), { banned });
 }
 
+// Owner-only (firestore.rules). While true, the seller cannot create new
+// ads — used when they owe an unpaid/overdue commission.
+export async function setUserCommissionBlock(uid: string, blocked: boolean) {
+  await updateDoc(doc(db, "users", uid), { commissionBlock: blocked });
+}
+
 // Owner-only. Deletes the user's Firestore data directly — firestore.rules
 // grants isSystemOwner() delete on users/ads/comments/commissions/reports.
 // The Firebase Auth login itself can only be removed with the Admin SDK
@@ -60,6 +64,7 @@ export async function setUserBanned(uid: string, banned: boolean) {
 export async function deleteUserPermanently(uid: string) {
   const cols: [string, string][] = [
     ["ads", "sellerId"],
+    ["adsPrivate", "sellerId"],
     ["comments", "userId"],
     ["commissions", "sellerId"],
     ["reports", "reporterId"],

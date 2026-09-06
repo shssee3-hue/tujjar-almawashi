@@ -9,6 +9,7 @@ Firebase من المتصفح، وقواعد Firestore Security Rules تفرض ك
 ```
 المتصفح
   │
+  ├─ Firebase App Check (reCAPTCHA v3) — يمنع استخدام الواجهات من غير التطبيق
   ├─ Firebase Auth (Email/Password؛ استعادة كلمة المرور عبر رابط بريد)
   ├─ Cloud Firestore (البيانات + قواعد RBAC، والصور كـ Base64 داخل المستند)
   └─ الاستضافة: Cloudflare Pages (تصدير Next.js الثابت، نشر تلقائي من GitHub)
@@ -46,6 +47,20 @@ Firebase من المتصفح، وقواعد Firestore Security Rules تفرض ك
 راجع [`api-reference.md`](./api-reference.md) للتفاصيل الكاملة لكل مجموعة
 (`ads`, `users`, `reports`, `breeds`, `regions`, `settings`).
 
+## أرقام تواصل البائع
+
+أرقام الهاتف والواتساب **ليست** على مستند الإعلان العام (`ads/{adId}` قراءته
+عامة، فكانت الأرقام قابلة للكشط عبر SDK). نُقلت إلى `adsPrivate/{adId}`
+المحميّة: لا يقرؤها زائر غير مسجّل إطلاقًا، ولا يقرؤها مستخدم مسجّل إلا إذا
+فعّل البائع زر تواصل. راجع [`api-reference.md`](./api-reference.md#adsprivate).
+
+## App Check
+
+`frontend/src/lib/firebase.ts` يُهيّئ Firebase App Check (reCAPTCHA v3) عند
+ضبط `NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY` — يمنع السكربتات من استخدام
+Firestore/Auth. الفرض يُفعَّل من الكونسول. خطوات الإعداد الكاملة في
+[`app-check-setup.md`](./app-check-setup.md). لا يتطلب خطة Blaze.
+
 ## تخزين الصور
 
 الصور (صور الإعلانات وإيصالات «تم البيع») تُضغط من جهة المتصفح
@@ -75,7 +90,7 @@ URI مباشرة داخل مستند Firestore**. Firebase Storage كان سيت
 
 ## الاستضافة
 
-- **Frontend:** Firebase Hosting، تصدير ثابت (`next build` مع `output: "export"`).
+- **Frontend:** Cloudflare Pages (الاستضافة الوحيدة)، تصدير ثابت (`next build` مع `output: "export"`). Firebase Hosting أُلغي — راجع [`cloudflare-pages-setup.md`](./cloudflare-pages-setup.md).
 - **صفحة الإعلان المفرد** بمسار `/ad?id=<id>` (وليس `/ad/<id>`) — لأن التصدير
   الثابت لا يملك خادمًا لحل مسارات ديناميكية حقيقية عند الطلب؛ سلسلة استعلام
   (query string) تتفاداها بالكامل.

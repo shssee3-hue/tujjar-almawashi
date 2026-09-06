@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { listAllUsersAdmin, setUserBanned, deleteUserPermanently } from "@/lib/users";
+import {
+  listAllUsersAdmin,
+  setUserBanned,
+  setUserCommissionBlock,
+  deleteUserPermanently,
+} from "@/lib/users";
 import { UserProfile } from "@/lib/types";
 import OwnerGuard from "@/components/OwnerGuard";
 
@@ -42,6 +47,18 @@ function UsersContent() {
     await setUserBanned(u.id, false);
     setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, banned: false } : x)));
     toast.success("تم رفع الحظر");
+  }
+
+  // Toggles the "unpaid commission" flag — while set, firestore.rules blocks
+  // the seller from creating new ads. No confirmation: it's reversible and
+  // less severe than a ban.
+  async function toggleCommissionBlock(u: UserProfile) {
+    const next = !u.commissionBlock;
+    await setUserCommissionBlock(u.id, next);
+    setUsers((prev) =>
+      prev.map((x) => (x.id === u.id ? { ...x, commissionBlock: next } : x))
+    );
+    toast.success(next ? "تم منع المستخدم من إضافة إعلانات" : "تم رفع المنع");
   }
 
   async function confirmPendingAction() {
@@ -92,6 +109,7 @@ function UsersContent() {
                 <th className="px-4 py-3">نوع الحساب</th>
                 <th className="px-4 py-3">الدور</th>
                 <th className="px-4 py-3">الحالة</th>
+                <th className="px-4 py-3">منع النشر (عمولة)</th>
                 <th className="px-4 py-3">حظر المستخدم</th>
                 <th className="px-4 py-3">حذف الحساب نهائيًا</th>
               </tr>
@@ -126,6 +144,23 @@ function UsersContent() {
                     >
                       {u.banned ? "محظور" : "نشط"}
                     </span>
+                    {u.commissionBlock && (
+                      <span className="mt-1 block rounded-full bg-orange-100 px-2 py-1 text-center text-xs font-bold text-orange-600">
+                        عمولة غير مسددة
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {u.role !== "owner" && (
+                      <button
+                        onClick={() => toggleCommissionBlock(u)}
+                        className={`text-xs font-bold ${
+                          u.commissionBlock ? "text-brand-primary" : "text-red-600"
+                        }`}
+                      >
+                        {u.commissionBlock ? "رفع المنع" : "منع"}
+                      </button>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {u.role !== "owner" &&

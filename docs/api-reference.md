@@ -20,8 +20,8 @@ REST API reference عادةً: شكل كل مجموعة بيانات، من يم
 | country, region | string | إلزاميان — `country` دائمًا `"السعودية"` للإعلانات الجديدة |
 | city | string | اختياري |
 | sellerId, sellerName, sellerType | — | مخزّنة مباشرة على الإعلان (denormalized) |
-| phoneNumber, whatsapp | string | |
-| showCallButton, showWhatsappButton | boolean | تتحكم بظهور زر الاتصال/واتساب للمشترين — كلاهما `false` افتراضيًا؛ الرقم لا يظهر تلقائيًا أبدًا |
+| ~~phoneNumber, whatsapp~~ | — | **لم تعد على مستند الإعلان** — نُقلت إلى مجموعة `adsPrivate/{adId}` المحميّة (راجع قسمها أدناه) حتى لا تُكشط من الإعلان العام |
+| showCallButton, showWhatsappButton | boolean | تتحكم بظهور زر الاتصال/واتساب للمشترين — كلاهما `false` افتراضيًا؛ يبقيان على مستند الإعلان العام (ليسا حسّاسين) وتُنسخان أيضًا إلى `adsPrivate` لتقرأهما القاعدة |
 | images | string[] | Base64 Data URI مضغوطة، مخزّنة على المستند مباشرة (لا Firebase Storage — يتطلب Blaze) |
 | reportsCount | number | عدد البلاغات؛ يُقرأ في لوحة الإدارة (لا عدّاد مشاهدات — أُزيل لتوفير كتابات Firestore) |
 | status | `active` \| `ended` \| `flagged` \| `deleted` | |
@@ -102,7 +102,31 @@ admin/owner معفيّون من
 المناطق، وكل المسميات. المنطق في `AdsExplorer.tsx` (متغيّر `locked`، مبني من
 وجود `animalType`/`category` في `window.location.search`).
 
-**الدوال:** `createAd`, `updateAd`, `deleteAd`, `hardDeleteAd`, `getAd`, `listAds`, `listAdsBySeller`, `listSimilarAds`, `listAllAdsAdmin` — في `frontend/src/lib/ads.ts`.
+**الدوال:** `createAd`, `updateAd`, `deleteAd`, `hardDeleteAd`, `getAd`, `listAds`, `listAdsBySeller`, `listSimilarAds`, `listAllAdsAdmin`, `getAdContact`, `setAdContact` — في `frontend/src/lib/ads.ts`.
+
+## adsPrivate
+
+مستند لكل إعلان (`adsPrivate/{adId}`) يحمل أرقام تواصل البائع، **خارج** مستند
+الإعلان العام حتى لا تُحصَد أرقام كل التجّار بقراءة مجموعة `ads` عبر SDK.
+
+| الحقل | النوع | ملاحظات |
+|---|---|---|
+| sellerId | string | مثبّت على منشئ الإعلان، غير قابل للتغيير لاحقًا |
+| phoneNumber, whatsapp | string | رقما الاتصال والواتساب |
+| showCallButton, showWhatsappButton | boolean | نسخة من حقلي الإعلان — تقرؤهما القاعدة لتقرير من يرى الأرقام |
+
+**الصلاحيات:**
+- **القراءة:** admin/owner (إشراف)، أو البائع نفسه، أو **أي مستخدم مسجّل**
+  لكن فقط إذا فعّل البائع زر تواصل واحدًا على الأقل. الزائر غير المسجّل لا
+  يقرأها إطلاقًا.
+- **الإنشاء/التعديل:** بائع الإعلان فقط (يُتحقَّق عبر `get()` على مستند
+  الإعلان)، و`sellerId` غير قابل لإعادة الإسناد.
+- **الحذف:** owner أو البائع؛ ويُنظَّف تلقائيًا في `hardDeleteAd` و
+  `deleteUserPermanently`.
+
+الواجهة: `AdDetailsClient` يجلب `getAdContact(adId)` بعد تسجيل الدخول ويعرض
+الأزرار من نتيجته؛ الزائر يرى رابط «سجّل الدخول لعرض رقم تواصل البائع».
+`add-ad` عند التعديل يجلب الأرقام من هنا لا من مستند الإعلان.
 
 ## users
 
@@ -111,7 +135,8 @@ admin/owner معفيّون من
 | name, email, phoneNumber | string |
 | accountType | `individual` \| `trader` |
 | role | `user` \| `admin` \| `owner` |
-| adsCount, reportsCount | number | يجب أن تساوي 0 عند الإنشاء — مفروض في `firestore.rules`، وليس فقط لأن `createUserProfile()` يرسلها كذلك |
+| commissionBlock | boolean، اختياري | غائب حتى يضبطه **owner** عبر `setUserCommissionBlock` (زر "منع" في `/dashboard/users`) — بينما `true` تمنع `firestore.rules` هذا البائع من إنشاء إعلانات جديدة (عمولة غير مسددة). القاعدة تقارنه بـ `.get("commissionBlock", false)`، ولا يقدر الحساب رفعه عن نفسه. مُشغّل تلقائي عند تجاوز مهلة 48 ساعة = Cloud Function، معلّق حتى ترقية Blaze. |
+| ~~adsCount, reportsCount~~ | — | **أُزيلا** — كانا دائمًا 0 (لا كود يزيدهما، وقواعد المستخدمين تمنع أي طرف ثالث من الكتابة). لوحة `/profile` تعرض `ads.length` مباشرة وإجمالي `reportsCount` من إعلانات البائع. |
 | banned | boolean، اختياري | غائب حتى يضبطه **owner** عبر `setUserBanned` (زر "حظر" في `/dashboard/users`، خلف مربع تأكيد) — القاعدة تقارنه بـ `.get("banned", false)` وليس الوصول المباشر، وإلا يرمي خطأ ويرفض تعديل الحساب لكل من لم يُحظر قط. **يُفرض فعليًا عند الدخول**: `login/page.tsx` يتحقق من الحقل فور نجاح `signInWithEmailAndPassword` ولا يُكمل الدخول إن كان `true`؛ و`AuthContext` يشترك بشكل حي (`onSnapshot`) على ملف أي مستخدم مسجّل دخول، فإن حُظر أثناء تصفّحه الموقع يُسجَّل خروجه فورًا برسالة "تم حظر حسابك من قبل إدارة المنصة." — وليس فقط عند محاولة دخول جديدة. |
 
 **الصلاحيات:**
@@ -139,9 +164,17 @@ Authentication. (كود `deleteUserCompletely` في `functions/` باقٍ لتر
 | adId, adTitle, reporterId, reason | string |
 | status | `open` \| `closed` |
 
-**الصلاحيات:** القراءة/التعديل/الحذف لـ admin/owner فقط. الإنشاء لأي مستخدم مسجّل (كمُبلِّغ عن نفسه).
+**معرّف المستند ثابت:** `reports/{adId}_{reporterId}` — بلاغ واحد لكل
+(إعلان، مُبلِّغ). محاولة ثانية تصيب نفس المستند فتقع على قاعدة `update`
+(المحصورة بـ admin) وتُرفض، فلا يمكن تضخيم عدّاد البلاغات ضد إعلان منافس.
+القاعدة تفرض أيضًا أن يطابق المعرّف صيغة `<adId>_<uid>`.
 
-**الدوال:** `createReport`, `listRecentReportsAdmin`, `closeReport` — في `frontend/src/lib/reports.ts`.
+**الصلاحيات:** القراءة/التعديل/الحذف لـ admin/owner فقط. الإنشاء لأي مستخدم
+مسجّل (كمُبلِّغ عن نفسه، وبالمعرّف الثابت أعلاه فقط). `createReport()` يتحقّق
+مسبقًا من عدم وجود بلاغ سابق ويرمي `ALREADY_REPORTED` فيعرض الزر «سبق أن
+أبلغت عن هذا الإعلان».
+
+**الدوال:** `createReport`, `listRecentReportsAdmin`, `closeReport`, `deleteReport` — في `frontend/src/lib/reports.ts`.
 
 ## breeds / regions / additionalServices
 
@@ -162,16 +195,16 @@ Authentication. (كود `deleteUserCompletely` في `functions/` باقٍ لتر
 `/dashboard/oath-text`). القراءة عامة، الكتابة لـ **owner فقط**. الدوال في
 `settings.ts`.
 
-**حقول نظام العمولة (`commissionRate`, `commissionText`, `bankAccountNumber`,
-`applePayLink`)** أُضيفت لنفس المستند — قابلة للتعديل من `/dashboard/settings`
-("نظام العمولة"):
+**حقول نظام العمولة (`commissionRate`, `commissionText`, `bankAccountNumber`)**
+أُضيفت لنفس المستند — قابلة للتعديل من `/dashboard/settings` ("نظام العمولة").
+دفع العمولة **تحويل بنكي فقط** — أُزيل مسار Apple Pay (والحقل `applePayLink`)
+توافقًا مع المواصفات الرسمية:
 
 | الحقل | النوع | ملاحظات |
 |---|---|---|
 | commissionRate | number | نسبة مئوية (افتراضيًا `1.5`)، تُستخدم لحساب `commissionAmount` تلقائيًا عند "تم البيع" |
 | commissionText | string | النص القانوني المعروض في نموذج "تم البيع" وعلى صفحة دفع العمولة؛ القيمة الافتراضية هي الصيغة القانونية المعتمدة التي زوّدنا بها صاحب المشروع |
-| bankAccountNumber | string | رقم الحساب البنكي المعروض عند اختيار "تحويل بنكي"؛ فارغ افتراضيًا (تظهر رسالة "لم يضبط المدير..." للبائع حتى يُضبط) |
-| applePayLink | string | رابط الدفع عبر Apple Pay؛ نفس السلوك عند الفراغ |
+| bankAccountNumber | string | رقم الحساب البنكي المعروض للبائع في نموذج "تم البيع"؛ فارغ افتراضيًا (تظهر رسالة "لم يضبط المدير..." حتى يُضبط) |
 | servicesTransportNoticeText | string | النص الثابت الإلزامي غير القابل للتعديل الظاهر فقط في نموذج إضافة إعلان لقسمي "خدمات"/"نقل مواشي" — راجع قسم `ads` أعلاه. قابل للتعديل من `/dashboard/settings` ("نص إلزامي — قسمي خدمات ونقل مواشي") |
 
 ## commissions
@@ -189,23 +222,31 @@ Authentication. (كود `deleteUserCompletely` في `functions/` باقٍ لتر
 | saleAmount | number | يُدخلها البائع — قيمة البيع الفعلية |
 | commissionRate | number | نسخة من `settings/site.commissionRate` وقت الإنشاء (تُجمَّد على المستند، فلا يتغيّر احتساب عمولة قديمة لو عدّل المدير النسبة لاحقًا) |
 | commissionAmount | number | `saleAmount * commissionRate / 100`، محسوبة في الواجهة |
-| paymentMethod | `applepay` \| `bank` | |
+| paymentMethod | `bank` | تحويل بنكي فقط (أُزيل `applepay`)؛ سجلات قديمة قد تحمل قيمة أخرى |
 | receiptFile | string | إيصال الدفع، Base64 Data URI مضغوطة (نفس أسلوب `images` في `ads` — لا Firebase Storage) |
 | status | `pending` \| `approved` \| `rejected` | `pending` إلزاميًا عند الإنشاء |
 | createdAt | number | |
 | reviewedAt | number، اختياري | تُضبط من admin/owner عند تغيير الحالة |
+| rejectionReason | string، اختياري | يكتبه المدير عند الرفض؛ يظهر في جدول الإدارة، ويقرؤه البائع في سجله |
 
 **الصلاحيات:**
 - **القراءة:** admin/owner، أو البائع صاحب العمولة (`sellerId == auth.uid`) لسجله فقط.
-- **الإنشاء:** أي مستخدم مسجّل، لكن فقط إن كان `sellerId == auth.uid` **و**كان
-  فعليًا بائع الإعلان `adId` المشار إليه (يتحقق عبر `get()` على مستند الإعلان)،
-  **و**`status == "pending"` إلزاميًا — هذا يمنع انتحال عمولة باسم بائع آخر أو
-  عن إعلان لا يملكه، أو تزوير حالة الموافقة عند الإنشاء مباشرة.
-- **التعديل:** admin/owner فقط، ومحصور بتغيير `status`/`reviewedAt` حصرًا
-  (`request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status","reviewedAt"])`)
+- **الإنشاء:** أي مستخدم مسجّل، لكن فقط إن كان `sellerId == auth.uid`، **و**كان
+  فعليًا بائع الإعلان `adId`، **و**الإعلان لا يزال `status == "active"` (طلب واحد
+  مفتوح لكل إعلان)، **و**`status == "pending"` إلزاميًا، **و**تتحقق القاعدة
+  حسابيًا: `saleAmount > 0`، و`commissionRate` تساوي `settings/site.commissionRate`
+  الحالية، و`commissionAmount` ضمن ±1 من `saleAmount × rate / 100` — فلا يمكن
+  لاستدعاء API مباشر تقديم عمولة صفرية أو منقوصة بتجاوز حساب الواجهة.
+- **التعديل:** admin/owner فقط، ومحصور بـ `status`/`reviewedAt`/`rejectionReason`
+  حصرًا (`...affectedKeys().hasOnly(["status","reviewedAt","rejectionReason"])`)
   — لا يقدر أحد (ولا حتى admin) تعديل `saleAmount`/`commissionAmount`/`receiptFile`
   بعد الإنشاء.
 - **الحذف:** admin/owner فقط.
+
+**دورة الحياة:** عند "تم البيع" يُنشأ سجل `pending` ويصبح الإعلان `ended` فورًا
+(يخرج من القوائم أثناء المراجعة). **القبول** يُبقيه `ended` (إغلاق رسمي).
+**الرفض** يكتب `rejectionReason` ويعيد الإعلان إلى `active` ليتمكن البائع من
+إعادة التقديم.
 
 **لوحة الإدارة:** `/dashboard/commissions` ("إدارة العمولات") — جدول بكل
 عمليات البيع المسجّلة، بعمود "رقم الإعلان (Ad Code)" ومربع "بحث برقم الإعلان"

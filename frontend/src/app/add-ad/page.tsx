@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAuthGate } from "@/lib/useAuthGate";
-import { createAd, getAd, updateAd } from "@/lib/ads";
+import { createAd, getAd, getAdContact, updateAd } from "@/lib/ads";
 import { getSiteSettings } from "@/lib/settings";
 import { listBreeds } from "@/lib/breeds";
 import { listAdditionalServices } from "@/lib/services";
@@ -123,12 +123,17 @@ function AddAdForm() {
       setCountry(ad.country);
       setRegion(ad.region);
       setCity(ad.city);
-      setPhoneNumber(ad.phoneNumber);
-      setWhatsapp(ad.whatsapp);
       setShowCallButton(!!ad.showCallButton);
       setShowWhatsappButton(!!ad.showWhatsappButton);
       setImages(ad.images || []);
       setLoadingAd(false);
+      // Contact numbers come from adsPrivate/{adId}, not the ad document.
+      getAdContact(editId).then((c) => {
+        if (c) {
+          setPhoneNumber(c.phoneNumber || "");
+          setWhatsapp(c.whatsapp || "");
+        }
+      });
     });
   }, [editId, router]);
 

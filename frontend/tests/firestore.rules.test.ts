@@ -145,6 +145,15 @@ describe("ads: create", () => {
       setDoc(doc(asSeller(), "ads", "new8"), validAd({ featured: true }))
     );
   });
+
+  it("blocks a seller flagged for an unpaid commission", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), "users", SELLER), {
+        commissionBlock: true,
+      });
+    });
+    await assertFails(setDoc(doc(asSeller(), "ads", "new9"), validAd()));
+  });
 });
 
 describe("ads: update", () => {
@@ -179,13 +188,11 @@ describe("ads: update", () => {
 });
 
 describe("users", () => {
-  it("create pins role=user and zeroed trust fields", async () => {
+  it("create pins role=user", async () => {
     const NEW = "fresh-uid";
     const base = {
       name: "N",
       accountType: "individual",
-      adsCount: 0,
-      reportsCount: 0,
       role: "user",
       phoneNumber: "0533333333",
       email: "n@example.com",
@@ -196,28 +203,14 @@ describe("users", () => {
     );
   });
 
-  it("create rejects a self-assigned admin role or pre-seeded counters", async () => {
+  it("create rejects a self-assigned admin role", async () => {
     const NEW = "fresh-uid-2";
     const db = testEnv.authenticatedContext(NEW).firestore();
     await assertFails(
       setDoc(doc(db, "users", NEW), {
         name: "N",
         accountType: "individual",
-        adsCount: 0,
-        reportsCount: 0,
         role: "admin",
-        phoneNumber: "0",
-        email: "n@e.com",
-        createdAt: 0,
-      })
-    );
-    await assertFails(
-      setDoc(doc(db, "users", NEW), {
-        name: "N",
-        accountType: "individual",
-        adsCount: 0,
-        reportsCount: 3,
-        role: "user",
         phoneNumber: "0",
         email: "n@e.com",
         createdAt: 0,
@@ -225,12 +218,19 @@ describe("users", () => {
     );
   });
 
-  it("self-update cannot escalate role or ban", async () => {
+  it("self-update cannot escalate role, ban, or clear a commission block", async () => {
     await assertSucceeds(
       updateDoc(doc(asBuyer(), "users", BUYER), { name: "B2" })
     );
     await assertFails(updateDoc(doc(asBuyer(), "users", BUYER), { role: "admin" }));
     await assertFails(updateDoc(doc(asBuyer(), "users", BUYER), { banned: true }));
+
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), "users", BUYER), { commissionBlock: true });
+    });
+    await assertFails(
+      updateDoc(doc(asBuyer(), "users", BUYER), { commissionBlock: false })
+    );
   });
 
   it("a non-owner cannot read someone else's profile", async () => {
@@ -262,33 +262,61 @@ describe("ratings (feature disabled)", () => {
 });
 
 describe("commissions", () => {
+  // Matches the client's arithmetic: 100 * 1.5% = 1.5. siteRate() falls back
+  // to 1.5 here because beforeEach seeds no settings/site doc.
+  const validClaim = (over: Record<string, unknown> = {}) => ({
+    adId: "ad1",
+    sellerId: SELLER,
+    status: "pending",
+    saleAmount: 100,
+    commissionRate: 1.5,
+    commissionAmount: 1.5,
+    createdAt: 0,
+    ...over,
+  });
+
   it("only the ad's seller may file, and only as pending", async () => {
     await assertSucceeds(
-      addDoc(collection(asSeller(), "commissions"), {
-        adId: "ad1",
-        sellerId: SELLER,
-        status: "pending",
-        saleAmount: 100,
-        createdAt: 0,
-      })
+      addDoc(collection(asSeller(), "commissions"), validClaim())
     );
     await assertFails(
-      addDoc(collection(asSeller(), "commissions"), {
-        adId: "ad1",
-        sellerId: SELLER,
-        status: "approved",
-        saleAmount: 100,
-        createdAt: 0,
-      })
+      addDoc(collection(asSeller(), "commissions"), validClaim({ status: "approved" }))
     );
     await assertFails(
-      addDoc(collection(asBuyer(), "commissions"), {
-        adId: "ad1",
-        sellerId: BUYER,
-        status: "pending",
-        saleAmount: 100,
-        createdAt: 0,
-      })
+      addDoc(
+        collection(asBuyer(), "commissions"),
+        validClaim({ sellerId: BUYER })
+      )
+    );
+  });
+
+  it("re-checks the sale amount, rate, and commission", async () => {
+    // zeroed commission on a real sale
+    await assertFails(
+      addDoc(collection(asSeller(), "commissions"), validClaim({ commissionAmount: 0 }))
+    );
+    // a rate that doesn't match the site setting
+    await assertFails(
+      addDoc(
+        collection(asSeller(), "commissions"),
+        validClaim({ commissionRate: 0.1, commissionAmount: 0.1 })
+      )
+    );
+    // non-positive sale amount
+    await assertFails(
+      addDoc(
+        collection(asSeller(), "commissions"),
+        validClaim({ saleAmount: 0, commissionAmount: 0 })
+      )
+    );
+  });
+
+  it("cannot be filed against an ad that is no longer active", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), "ads", "ad1"), { status: "ended" });
+    });
+    await assertFails(
+      addDoc(collection(asSeller(), "commissions"), validClaim())
     );
   });
 
@@ -362,9 +390,9 @@ describe("reports", () => {
     await assertSucceeds(getDoc(doc(asOwner(), "reports", "rep1")));
   });
 
-  it("a reporter must file under their own uid", async () => {
+  it("a reporter must file under their own uid, at the pinned doc id", async () => {
     await assertSucceeds(
-      addDoc(collection(asBuyer(), "reports"), {
+      setDoc(doc(asBuyer(), "reports", `ad1_${BUYER}`), {
         adId: "ad1",
         reporterId: BUYER,
         reason: "مخالف",
@@ -372,14 +400,111 @@ describe("reports", () => {
         createdAt: 0,
       })
     );
+    // reporterId isn't the caller
     await assertFails(
-      addDoc(collection(asBuyer(), "reports"), {
+      setDoc(doc(asBuyer(), "reports", `ad1_${SELLER}`), {
         adId: "ad1",
         reporterId: SELLER,
         reason: "مخالف",
         status: "open",
         createdAt: 0,
       })
+    );
+    // doc id doesn't match `${adId}_${uid}`
+    await assertFails(
+      setDoc(doc(asBuyer(), "reports", "arbitrary-id"), {
+        adId: "ad1",
+        reporterId: BUYER,
+        reason: "مخالف",
+        status: "open",
+        createdAt: 0,
+      })
+    );
+  });
+
+  it("rejects a second report for the same ad by the same user", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "reports", `ad1_${BUYER}`), {
+        adId: "ad1",
+        reporterId: BUYER,
+        reason: "مخالف",
+        status: "open",
+        createdAt: 0,
+      });
+    });
+    // a repeat filing lands on the existing doc -> hits the (admin-only)
+    // update rule -> denied
+    await assertFails(
+      setDoc(doc(asBuyer(), "reports", `ad1_${BUYER}`), {
+        adId: "ad1",
+        reporterId: BUYER,
+        reason: "صور غير حقيقية",
+        status: "open",
+        createdAt: 1,
+      })
+    );
+  });
+});
+
+describe("adsPrivate (seller contact numbers)", () => {
+  const seedPrivate = (over: Record<string, unknown> = {}) =>
+    testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "adsPrivate", "ad1"), {
+        sellerId: SELLER,
+        phoneNumber: "0500000000",
+        whatsapp: "0500000000",
+        showCallButton: false,
+        showWhatsappButton: false,
+        ...over,
+      });
+    });
+
+  it("is never readable by a logged-out visitor", async () => {
+    await seedPrivate({ showCallButton: true });
+    await assertFails(getDoc(doc(asAnon(), "adsPrivate", "ad1")));
+  });
+
+  it("hides the numbers from a signed-in user until a contact button is on", async () => {
+    await seedPrivate();
+    await assertFails(getDoc(doc(asBuyer(), "adsPrivate", "ad1")));
+    await seedPrivate({ showWhatsappButton: true });
+    await assertSucceeds(getDoc(doc(asBuyer(), "adsPrivate", "ad1")));
+  });
+
+  it("lets the seller and an admin read regardless of the buttons", async () => {
+    await seedPrivate();
+    await assertSucceeds(getDoc(doc(asSeller(), "adsPrivate", "ad1")));
+    await assertSucceeds(getDoc(doc(asOwner(), "adsPrivate", "ad1")));
+  });
+
+  it("only the ad's seller may create the private record", async () => {
+    await assertSucceeds(
+      setDoc(doc(asSeller(), "adsPrivate", "ad1"), {
+        sellerId: SELLER,
+        phoneNumber: "0500000000",
+        whatsapp: "",
+        showCallButton: true,
+        showWhatsappButton: false,
+      })
+    );
+    await assertFails(
+      setDoc(doc(asBuyer(), "adsPrivate", "ad1"), {
+        sellerId: BUYER,
+        phoneNumber: "0511111111",
+        whatsapp: "",
+        showCallButton: true,
+        showWhatsappButton: false,
+      })
+    );
+  });
+
+  it("cannot be reassigned to another seller on update", async () => {
+    await seedPrivate();
+    await assertFails(
+      updateDoc(doc(asSeller(), "adsPrivate", "ad1"), { sellerId: BUYER })
+    );
+    await assertSucceeds(
+      updateDoc(doc(asSeller(), "adsPrivate", "ad1"), { showCallButton: true })
     );
   });
 });

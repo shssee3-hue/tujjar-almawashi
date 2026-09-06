@@ -2,6 +2,7 @@ import {
   collection,
   addDoc,
   doc,
+  setDoc,
   updateDoc,
   deleteDoc,
   getDoc,
@@ -17,9 +18,21 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { Ad, AdCategory } from "./types";
+import { Ad, AdCategory, AdContact } from "./types";
 
 const adsCol = collection(db, "ads");
+
+// Fields that never belong on the world-readable ads/{adId} document — the
+// seller's contact numbers. They are written to adsPrivate/{adId} instead,
+// where firestore.rules only lets a signed-in user read them (and only when
+// the seller enabled a contact button).
+type AdInput = Omit<
+  Ad,
+  "id" | "adCode" | "createdAt" | "updatedAt" | "reportsCount" | "status"
+> & {
+  phoneNumber: string;
+  whatsapp: string;
+};
 
 // Generates a human-readable, sequential ad code like "AD-2026-001245" —
 // AD + the current year + a 6-digit zero-padded sequence number that resets
@@ -57,22 +70,74 @@ export interface AdsPage {
 
 export const ADS_PAGE_SIZE = 12;
 
-export async function createAd(data: Omit<Ad, "id" | "adCode" | "createdAt" | "updatedAt" | "reportsCount" | "status">) {
+// Writes the seller's numbers to adsPrivate/{adId}. Kept separate from the
+// public ad document — see AdInput above.
+export async function setAdContact(
+  adId: string,
+  sellerId: string,
+  contact: { phoneNumber: string; whatsapp: string; showCallButton: boolean; showWhatsappButton: boolean }
+) {
+  await setDoc(
+    doc(db, "adsPrivate", adId),
+    { sellerId, ...contact },
+    { merge: true }
+  );
+}
+
+// Reads adsPrivate/{adId}. Returns null when the caller isn't allowed to see
+// it (guest, or the seller disabled every contact button) — the rules deny
+// the read and the SDK throws, which we swallow here.
+export async function getAdContact(adId: string): Promise<AdContact | null> {
+  try {
+    const snap = await getDoc(doc(db, "adsPrivate", adId));
+    if (!snap.exists()) return null;
+    return snap.data() as AdContact;
+  } catch {
+    return null;
+  }
+}
+
+export async function createAd(data: AdInput) {
   const now = Date.now();
   const adCode = await generateAdCode();
+  const { phoneNumber, whatsapp, ...adFields } = data;
   const docRef = await addDoc(adsCol, {
-    ...data,
+    ...adFields,
     adCode,
     createdAt: now,
     updatedAt: now,
     reportsCount: 0,
     status: "active",
   });
+  await setAdContact(docRef.id, data.sellerId, {
+    phoneNumber,
+    whatsapp,
+    showCallButton: data.showCallButton,
+    showWhatsappButton: data.showWhatsappButton,
+  });
   return docRef.id;
 }
 
-export async function updateAd(id: string, data: Partial<Ad>) {
-  await updateDoc(doc(db, "ads", id), { ...data, updatedAt: Date.now() });
+export async function updateAd(
+  id: string,
+  data: Partial<Ad> & { phoneNumber?: string; whatsapp?: string }
+) {
+  const { phoneNumber, whatsapp, ...adFields } = data;
+  await updateDoc(doc(db, "ads", id), { ...adFields, updatedAt: Date.now() });
+
+  const touchesContact =
+    phoneNumber !== undefined ||
+    whatsapp !== undefined ||
+    data.showCallButton !== undefined ||
+    data.showWhatsappButton !== undefined;
+  if (touchesContact && data.sellerId) {
+    await setAdContact(id, data.sellerId, {
+      phoneNumber: phoneNumber ?? "",
+      whatsapp: whatsapp ?? "",
+      showCallButton: data.showCallButton ?? false,
+      showWhatsappButton: data.showWhatsappButton ?? false,
+    });
+  }
 }
 
 export async function deleteAd(id: string) {
@@ -81,6 +146,7 @@ export async function deleteAd(id: string) {
 
 export async function hardDeleteAd(id: string) {
   await deleteDoc(doc(db, "ads", id));
+  await deleteDoc(doc(db, "adsPrivate", id)).catch(() => undefined);
 }
 
 export async function getAd(id: string): Promise<Ad | null> {

@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ANIMAL_TYPES, CATEGORIES, DEFAULT_REGIONS, SECTION_OPTIONS } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
+import { listAds } from "@/lib/ads";
+import { Ad } from "@/lib/types";
+import AdCard from "@/components/AdCard";
 
 const CATEGORY_PHOTOS: Record<string, string> = {
   "الضأن": "/images/animals/sheep.webp",
@@ -23,6 +26,13 @@ export default function HomePage() {
   const { firebaseUser } = useAuth();
   const [section, setSection] = useState("");
   const [region, setRegion] = useState("");
+  const [latest, setLatest] = useState<Ad[]>([]);
+
+  useEffect(() => {
+    listAds({}, { pageSize: 8 })
+      .then((p) => setLatest(p.ads))
+      .catch(() => {});
+  }, []);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -188,6 +198,22 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      {latest.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 pb-16">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-2xl font-extrabold text-brand-bg-dark">أحدث الإعلانات</h2>
+            <Link href="/ads" className="text-sm font-bold text-brand-primary">
+              عرض الكل ←
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {latest.map((ad) => (
+              <AdCard key={ad.id} ad={ad} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

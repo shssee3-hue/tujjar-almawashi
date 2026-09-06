@@ -30,8 +30,6 @@ export interface Ad {
   sellerId: string;
   sellerName: string;
   sellerType: SellerType;
-  phoneNumber: string;
-  whatsapp: string;
   images: string[];
   createdAt: number;
   updatedAt: number;
@@ -39,6 +37,21 @@ export interface Ad {
   status: AdStatus;
   featured?: boolean;
   oathAccepted: boolean;
+  // Whether the seller has opted to expose a call / WhatsApp button. The
+  // numbers themselves are NOT on this (world-readable) document — they live
+  // in adsPrivate/{adId}, gated by firestore.rules. See AdContact below.
+  showCallButton: boolean;
+  showWhatsappButton: boolean;
+}
+
+// adsPrivate/{adId} — the seller's contact numbers for one ad, kept out of
+// the public ads/{adId} document so they can't be scraped via the SDK.
+// Readable only by a signed-in user when the seller enabled a contact
+// button, by the seller themselves, or by an admin (moderation).
+export interface AdContact {
+  sellerId: string;
+  phoneNumber: string;
+  whatsapp: string;
   showCallButton: boolean;
   showWhatsappButton: boolean;
 }
@@ -49,10 +62,13 @@ export interface UserProfile {
   phoneNumber: string;
   email: string;
   accountType: AccountType;
-  adsCount: number;
-  reportsCount: number;
   role: UserRole;
   banned?: boolean;
+  // Set by the owner when the seller has an unpaid/overdue commission —
+  // firestore.rules then blocks that seller from creating new ads until it
+  // is cleared. (An automatic sweeper that sets this on the 48h deadline is
+  // a Cloud Function, pending the Blaze upgrade.)
+  commissionBlock?: boolean;
   createdAt: number;
 }
 
@@ -96,11 +112,13 @@ export interface SiteSettings {
   commissionRate: number;
   commissionText: string;
   bankAccountNumber: string;
-  applePayLink: string;
   servicesTransportNoticeText: string;
 }
 
-export type CommissionPaymentMethod = "applepay" | "bank";
+// Commission payments are bank transfer only — Apple Pay was removed to match
+// the official spec. Historical commission documents may still carry other
+// values; treat anything that isn't "bank" as legacy.
+export type CommissionPaymentMethod = "bank";
 export type CommissionStatus = "pending" | "approved" | "rejected";
 
 export interface Commission {
@@ -118,6 +136,9 @@ export interface Commission {
   status: CommissionStatus;
   createdAt: number;
   reviewedAt?: number;
+  // Filled by the admin when status is set to "rejected" — shown in the
+  // admin table and readable by the seller on their own record.
+  rejectionReason?: string;
 }
 
 export interface Comment {

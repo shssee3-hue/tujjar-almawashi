@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getAd, listSimilarAds, deleteAd } from "@/lib/ads";
-import { Ad } from "@/lib/types";
+import { getAd, getAdContact, listSimilarAds, deleteAd } from "@/lib/ads";
+import { Ad, AdContact } from "@/lib/types";
 import ImageGallery from "@/components/ImageGallery";
 import ReportButton from "@/components/ReportButton";
 import AdCard from "@/components/AdCard";
@@ -26,6 +26,7 @@ export default function AdDetailsClient() {
   const router = useRouter();
   const { firebaseUser, isAdmin } = useAuth();
   const [ad, setAd] = useState<Ad | null | undefined>(undefined);
+  const [contact, setContact] = useState<AdContact | null>(null);
   const [similar, setSimilar] = useState<Ad[]>([]);
   const [saleModalOpen, setSaleModalOpen] = useState(false);
   const [saleConfirmChecked, setSaleConfirmChecked] = useState(false);
@@ -42,6 +43,14 @@ export default function AdDetailsClient() {
       }
     });
   }, [id]);
+
+  // Contact numbers live in adsPrivate/{adId}, not on the public ad document.
+  // A guest (or a seller who disabled every contact button) gets null back.
+  useEffect(() => {
+    if (!id) return;
+    setContact(null);
+    getAdContact(id).then(setContact);
+  }, [id, firebaseUser]);
 
   if (ad === undefined) {
     return <p className="py-24 text-center text-black/40">جاري التحميل...</p>;
@@ -165,23 +174,31 @@ export default function AdDetailsClient() {
           </div>
 
           <div className="mt-6 flex flex-col gap-2">
-            {ad.showCallButton && (
+            {ad.showCallButton && contact?.phoneNumber && (
               <a
-                href={`tel:${ad.phoneNumber}`}
+                href={`tel:${contact.phoneNumber}`}
                 className="rounded-xl bg-brand-primary py-3 text-center font-bold text-white hover:brightness-110"
               >
-                📞 اتصال: {ad.phoneNumber}
+                📞 اتصال: {contact.phoneNumber}
               </a>
             )}
-            {ad.showWhatsappButton && ad.whatsapp && (
+            {ad.showWhatsappButton && contact?.whatsapp && (
               <a
-                href={`https://wa.me/${ad.whatsapp.replace(/[^0-9]/g, "")}`}
+                href={`https://wa.me/${contact.whatsapp.replace(/[^0-9]/g, "")}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-xl bg-green-600 py-3 text-center font-bold text-white hover:brightness-110"
               >
                 💬 واتساب
               </a>
+            )}
+            {(ad.showCallButton || ad.showWhatsappButton) && !contact && !firebaseUser && (
+              <p className="text-center text-sm text-black/40">
+                <Link href="/login" className="font-bold text-brand-primary">
+                  سجّل الدخول
+                </Link>{" "}
+                لعرض رقم تواصل البائع.
+              </p>
             )}
             {!ad.showCallButton && !ad.showWhatsappButton && (
               <p className="text-center text-sm text-black/40">

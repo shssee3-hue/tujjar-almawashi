@@ -41,10 +41,11 @@ npm run dev
 
 | البند | الرابط |
 |---|---|
-| النسخة المنشورة | https://tujjar-almawashi.web.app |
-| لوحة التحكم | https://tujjar-almawashi.web.app/dashboard |
+| النسخة المنشورة | Cloudflare Pages — `https://<اسم-المشروع>.pages.dev` (يُحدَّث بعد الربط) |
+| النسخة القديمة (تُلغى) | ~~https://tujjar-almawashi.web.app~~ — Firebase Hosting أُلغي، راجع [`docs/cloudflare-pages-setup.md`](docs/cloudflare-pages-setup.md) |
+| لوحة التحكم | `<النطاق>/dashboard` |
 | حساب المالك (owner) | `owner@tujjar-almawashi.com` — كلمة المرور غير معروضة هنا لأسباب أمنية |
-| الشروط والأحكام | https://tujjar-almawashi.web.app/terms |
+| الشروط والأحكام | `<النطاق>/terms` |
 | التقرير النهائي (صفحة حية) | https://shssee3-hue.github.io/tujjar-almawashi/tujjar-report.html |
 | التقرير النهائي (ملف المصدر) | [`docs/tujjar-report.html`](docs/tujjar-report.html) |
 | البنية التقنية | [`docs/architecture.md`](docs/architecture.md) |
