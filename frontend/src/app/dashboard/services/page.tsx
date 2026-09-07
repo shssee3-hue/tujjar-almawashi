@@ -64,7 +64,7 @@ export default function AdminServicesPage() {
         <h1 className="text-2xl font-extrabold text-brand-bg-dark">
           إدارة الخدمات الإضافية للأقسام
         </h1>
-        <p className="mt-1 text-sm text-black/50">
+        <p className="mt-1 text-sm text-black/68">
           الخدمات المضافة هنا تظهر فورًا في شريط البحث وفي نموذج إضافة إعلان،
           ضمن التصنيف الفرعي للقسم المرتبطة به.
         </p>
@@ -101,13 +101,13 @@ export default function AdminServicesPage() {
         </button>
       </form>
 
-      <p className="text-sm text-black/40">
+      <p className="text-sm text-black/58">
         التصنيفات الافتراضية المدمجة بالنظام تظهر دائمًا في النماذج؛ الخدمات
         المضافة هنا تُستخدم لتوسيعها.
       </p>
 
       {loading ? (
-        <p className="text-black/40">جاري التحميل...</p>
+        <p className="text-black/58">جاري التحميل...</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {SERVICE_CATEGORIES.map((c) => {

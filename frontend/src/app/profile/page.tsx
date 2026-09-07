@@ -81,7 +81,7 @@ export default function ProfilePage() {
   const adTitleById = Object.fromEntries(ads.map((a) => [a.id, a.title]));
 
   if (authLoading || !profile) {
-    return <p className="py-24 text-center text-black/40">جاري التحميل...</p>;
+    return <p className="py-24 text-center text-black/58">جاري التحميل...</p>;
   }
 
   const filtered = ads.filter((a) => {
@@ -166,7 +166,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <h1 className="text-xl font-extrabold">{profile.name}</h1>
-              <p className="text-sm text-black/50">
+              <p className="text-sm text-black/68">
                 {profile.accountType === "trader" ? "تاجر" : "فرد"}
               </p>
             </div>
@@ -210,7 +210,7 @@ export default function ProfilePage() {
               <h3 className="mb-1 text-sm font-bold text-brand-bg-dark">
                 تغيير بريد الدخول
               </h3>
-              <p className="mb-3 text-xs text-black/40">
+              <p className="mb-3 text-xs text-black/58">
                 نرسل رابط تأكيد إلى البريد الجديد، ولا يتغيّر بريد الدخول حتى تفتح
                 الرابط منه.
               </p>
@@ -245,7 +245,7 @@ export default function ProfilePage() {
               <h3 className="mb-1 text-sm font-bold text-red-700">
                 حذف الحساب والبيانات
               </h3>
-              <p className="mb-3 text-xs text-black/40">
+              <p className="mb-3 text-xs text-black/58">
                 يحق لك طلب حذف حسابك وكل بياناتك وفق نظام حماية البيانات الشخصية.
                 تُعالَج الطلبات خلال مدة لا تتجاوز 30 يومًا.
               </p>
@@ -262,21 +262,21 @@ export default function ProfilePage() {
         ) : (
           <div className="mt-6 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
             <div>
-              <p className="text-black/40">البريد الإلكتروني</p>
+              <p className="text-black/58">البريد الإلكتروني</p>
               <p className="font-bold">{profile.email}</p>
             </div>
             <div>
-              <p className="text-black/40">رقم الجوال</p>
+              <p className="text-black/58">رقم الجوال</p>
               <p className="font-bold" dir="ltr">
                 {profile.phoneNumber}
               </p>
             </div>
             <div>
-              <p className="text-black/40">عدد الإعلانات</p>
+              <p className="text-black/58">عدد الإعلانات</p>
               <p className="font-bold">{ads.length}</p>
             </div>
             <div>
-              <p className="text-black/40">بلاغات على إعلاناتك</p>
+              <p className="text-black/58">بلاغات على إعلاناتك</p>
               <p className="font-bold">
                 {ads.reduce((s, a) => s + (a.reportsCount || 0), 0)}
               </p>
@@ -293,7 +293,7 @@ export default function ProfilePage() {
             className={`rounded-full px-4 py-2 text-sm font-bold transition ${
               tab === t.key
                 ? "bg-brand-primary text-white"
-                : "bg-white text-black/50 hover:bg-black/5"
+                : "bg-white text-black/68 hover:bg-black/5"
             }`}
           >
             {t.label}
@@ -302,7 +302,7 @@ export default function ProfilePage() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-black/10 py-16 text-center text-black/40">
+        <div className="rounded-2xl border border-dashed border-black/10 py-16 text-center text-black/58">
           لا توجد إعلانات في هذا القسم
           <div className="mt-3">
             <Link href="/add-ad" className="font-bold text-brand-primary">
@@ -348,7 +348,7 @@ export default function ProfilePage() {
                     {new Date(c.createdAt).toLocaleString("ar-SA")}
                   </span>
                 </div>
-                <p className="text-sm text-black/70">
+                <p className="text-sm text-black/85">
                   <span className="font-bold">{c.userName}</span>: {c.text}
                 </p>
               </Link>

@@ -18,7 +18,7 @@ function reportBadgeFor(ad: Ad, reportsByAd: Record<string, Report[]>): ReportBa
   if (reports.some((r) => r.status === "open")) {
     return { label: "مفتوح", color: "bg-orange-100 text-orange-600" };
   }
-  return { label: "مغلق", color: "bg-black/10 text-black/50" };
+  return { label: "مغلق", color: "bg-black/10 text-black/68" };
 }
 
 const STATUS_LABEL: Record<AdStatus, string> = {
@@ -30,9 +30,9 @@ const STATUS_LABEL: Record<AdStatus, string> = {
 
 const STATUS_COLOR: Record<AdStatus, string> = {
   active: "bg-green-100 text-green-700",
-  ended: "bg-black/10 text-black/60",
+  ended: "bg-black/10 text-black/78",
   flagged: "bg-red-100 text-red-600",
-  deleted: "bg-black/10 text-black/40",
+  deleted: "bg-black/10 text-black/58",
 };
 
 export default function AdminAdsPage() {
@@ -88,7 +88,7 @@ export default function AdminAdsPage() {
               key={s}
               onClick={() => setFilter(s)}
               className={`rounded-full px-4 py-1.5 text-sm font-bold ${
-                filter === s ? "bg-brand-primary text-white" : "bg-white text-black/50"
+                filter === s ? "bg-brand-primary text-white" : "bg-white text-black/68"
               }`}
             >
               {s === "all" ? "الكل" : STATUS_LABEL[s]}
@@ -98,7 +98,7 @@ export default function AdminAdsPage() {
       </div>
 
       {loading ? (
-        <p className="text-black/40">جاري التحميل...</p>
+        <p className="text-black/58">جاري التحميل...</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-black/5 bg-white shadow-sm">
           <table className="w-full text-sm">
@@ -122,7 +122,7 @@ export default function AdminAdsPage() {
                       {ad.title}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-black/50">{CATEGORY_LABELS[ad.category]}</td>
+                  <td className="px-4 py-3 text-black/68">{CATEGORY_LABELS[ad.category]}</td>
                   <td className="px-4 py-3">{ad.sellerName}</td>
                   <td className="px-4 py-3">{ad.price} ريال</td>
                   <td className="px-4 py-3">
@@ -168,7 +168,7 @@ export default function AdminAdsPage() {
                       {ad.status !== "ended" && (
                         <button
                           onClick={() => setStatus(ad.id, "ended")}
-                          className="text-xs font-bold text-black/50"
+                          className="text-xs font-bold text-black/68"
                         >
                           إنهاء
                         </button>
@@ -188,7 +188,7 @@ export default function AdminAdsPage() {
             </tbody>
           </table>
           {filtered.length === 0 && (
-            <p className="py-10 text-center text-black/40">لا توجد إعلانات في هذا التصنيف</p>
+            <p className="py-10 text-center text-black/58">لا توجد إعلانات في هذا التصنيف</p>
           )}
         </div>
       )}

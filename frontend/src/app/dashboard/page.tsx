@@ -50,7 +50,7 @@ export default function DashboardOverviewPage() {
       <h1 className="text-2xl font-extrabold text-brand-bg-dark">نظرة عامة</h1>
 
       {loading ? (
-        <p className="text-black/40">جاري التحميل...</p>
+        <p className="text-black/58">جاري التحميل...</p>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -58,7 +58,7 @@ export default function DashboardOverviewPage() {
               <div key={s.label} className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
                 <div className="text-2xl">{s.icon}</div>
                 <div className="mt-2 text-2xl font-extrabold text-brand-primary">{s.value}</div>
-                <div className="text-sm text-black/50">{s.label}</div>
+                <div className="text-sm text-black/68">{s.label}</div>
               </div>
             ))}
           </div>
@@ -79,14 +79,14 @@ export default function DashboardOverviewPage() {
             </div>
 
             {reports.length === 0 ? (
-              <p className="text-sm text-black/40">لا توجد بلاغات حتى الآن</p>
+              <p className="text-sm text-black/58">لا توجد بلاغات حتى الآن</p>
             ) : (
               <div className="flex flex-col divide-y divide-black/5">
                 {reports.map((r) => (
                   <div key={r.id} className="flex items-center justify-between gap-3 py-3">
                     <div>
                       <p className="font-medium text-brand-bg-dark">{r.adTitle || r.adId}</p>
-                      <p className="text-xs text-black/40">{r.reason}</p>
+                      <p className="text-xs text-black/58">{r.reason}</p>
                     </div>
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-bold ${

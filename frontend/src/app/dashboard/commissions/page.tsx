@@ -82,7 +82,7 @@ export default function AdminCommissionsPage() {
               key={s}
               onClick={() => setFilter(s)}
               className={`rounded-full px-4 py-1.5 text-sm font-bold ${
-                filter === s ? "bg-brand-primary text-white" : "bg-white text-black/50"
+                filter === s ? "bg-brand-primary text-white" : "bg-white text-black/68"
               }`}
             >
               {s === "all" ? "الكل" : STATUS_LABEL[s]}
@@ -92,7 +92,7 @@ export default function AdminCommissionsPage() {
       </div>
 
       <div>
-        <label htmlFor="ad-code-search" className="mb-1 block text-sm font-medium text-black/60">
+        <label htmlFor="ad-code-search" className="mb-1 block text-sm font-medium text-black/78">
           بحث برقم الإعلان
         </label>
         <input
@@ -107,9 +107,9 @@ export default function AdminCommissionsPage() {
       </div>
 
       {loading ? (
-        <p className="text-black/40">جاري التحميل...</p>
+        <p className="text-black/58">جاري التحميل...</p>
       ) : filtered.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-black/10 py-10 text-center text-black/40">
+        <p className="rounded-2xl border border-dashed border-black/10 py-10 text-center text-black/58">
           لا توجد عمليات بيع مسجّلة
         </p>
       ) : (
@@ -143,7 +143,7 @@ export default function AdminCommissionsPage() {
                   <td className="px-4 py-3">{formatPrice(c.saleAmount)} ريال</td>
                   <td className="px-4 py-3">
                     {formatPrice(c.commissionAmount)} ريال
-                    <span className="text-black/40"> ({c.commissionRate}%)</span>
+                    <span className="text-black/58"> ({c.commissionRate}%)</span>
                   </td>
                   <td className="px-4 py-3">تحويل بنكي</td>
                   <td className="px-4 py-3">
@@ -159,7 +159,7 @@ export default function AdminCommissionsPage() {
                       {STATUS_LABEL[c.status]}
                     </span>
                     {c.status === "rejected" && c.rejectionReason && (
-                      <p className="mt-1 max-w-[16rem] text-xs text-black/40">
+                      <p className="mt-1 max-w-[16rem] text-xs text-black/58">
                         السبب: {c.rejectionReason}
                       </p>
                     )}

@@ -110,19 +110,19 @@ export default function SaleConfirmationModal({
         <div className="mb-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-extrabold text-brand-primary">تم البيع</h3>
-            <button onClick={onClose} className="text-black/40 hover:text-black/70">
+            <button onClick={onClose} className="text-black/58 hover:text-black/85">
               ✕
             </button>
           </div>
           {adCode && (
-            <p className="mt-0.5 text-xs text-black/40">
+            <p className="mt-0.5 text-xs text-black/58">
               إعلان رقم: <bdi className="font-medium">{adCode}</bdi>
             </p>
           )}
         </div>
 
         {!settings ? (
-          <p className="py-10 text-center text-black/40">جاري التحميل...</p>
+          <p className="py-10 text-center text-black/58">جاري التحميل...</p>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
@@ -138,7 +138,7 @@ export default function SaleConfirmationModal({
             </div>
 
             <div className="rounded-xl bg-brand-bg-light p-4 text-center">
-              <p className="text-xs text-black/50">
+              <p className="text-xs text-black/68">
                 العمولة المستحقة ({rate}% من قيمة البيع)
               </p>
               <p className="text-2xl font-extrabold text-brand-primary">
@@ -154,7 +154,7 @@ export default function SaleConfirmationModal({
               <div className="mt-2 rounded-xl border border-dashed border-black/10 p-3 text-sm">
                 {settings.bankAccountNumber ? (
                   <>
-                    <span className="block text-xs text-black/40">
+                    <span className="block text-xs text-black/58">
                       حوّل مبلغ العمولة إلى الحساب التالي ثم ارفع الإيصال:
                     </span>
                     <span dir="ltr" className="mt-1 block font-bold">
@@ -162,7 +162,7 @@ export default function SaleConfirmationModal({
                     </span>
                   </>
                 ) : (
-                  <span className="text-black/40">لم يضبط المدير رقم الحساب البنكي بعد</span>
+                  <span className="text-black/58">لم يضبط المدير رقم الحساب البنكي بعد</span>
                 )}
               </div>
             </div>
@@ -171,7 +171,7 @@ export default function SaleConfirmationModal({
               <label className="mb-1 block text-sm font-medium">إيصال الدفع *</label>
               <label
                 htmlFor="receipt-upload"
-                className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-lg border border-[#ddd] bg-[#f5f5f5] px-3 text-sm text-black/60 transition hover:bg-black/10"
+                className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-lg border border-[#ddd] bg-[#f5f5f5] px-3 text-sm text-black/78 transition hover:bg-black/10"
               >
                 <span className="text-base">📎</span>
                 <span className="truncate">
@@ -190,7 +190,7 @@ export default function SaleConfirmationModal({
               )}
             </div>
 
-            <p className="whitespace-pre-line rounded-xl bg-black/5 p-3 text-xs leading-relaxed text-black/60">
+            <p className="whitespace-pre-line rounded-xl bg-black/5 p-3 text-xs leading-relaxed text-black/78">
               {settings.commissionText}
             </p>
 

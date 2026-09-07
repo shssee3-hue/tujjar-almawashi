@@ -74,12 +74,12 @@ export default function AuthGateModal({
           <h3 className="text-lg font-extrabold text-brand-primary">
             {tab === "login" ? "تسجيل الدخول" : "إنشاء حساب جديد"}
           </h3>
-          <button onClick={onClose} className="text-black/40 hover:text-black/70">
+          <button onClick={onClose} className="text-black/58 hover:text-black/85">
             ✕
           </button>
         </div>
 
-        <p className="mb-4 text-sm text-black/50">
+        <p className="mb-4 text-sm text-black/68">
           يجب تسجيل الدخول أولًا لإتمام هذا الإجراء.
         </p>
 
@@ -87,7 +87,7 @@ export default function AuthGateModal({
           <button
             onClick={() => setTab("login")}
             className={`flex-1 rounded-lg py-2 text-sm font-bold transition ${
-              tab === "login" ? "bg-white text-brand-primary shadow-sm" : "text-black/50"
+              tab === "login" ? "bg-white text-brand-primary shadow-sm" : "text-black/68"
             }`}
           >
             تسجيل الدخول
@@ -95,7 +95,7 @@ export default function AuthGateModal({
           <button
             onClick={() => setTab("register")}
             className={`flex-1 rounded-lg py-2 text-sm font-bold transition ${
-              tab === "register" ? "bg-white text-brand-primary shadow-sm" : "text-black/50"
+              tab === "register" ? "bg-white text-brand-primary shadow-sm" : "text-black/68"
             }`}
           >
             حساب جديد
@@ -160,7 +160,7 @@ export default function AuthGateModal({
                 className={`flex-1 rounded-xl border py-2 text-sm font-medium ${
                   accountType === "individual"
                     ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
-                    : "border-black/10 text-black/50"
+                    : "border-black/10 text-black/68"
                 }`}
               >
                 فرد
@@ -171,7 +171,7 @@ export default function AuthGateModal({
                 className={`flex-1 rounded-xl border py-2 text-sm font-medium ${
                   accountType === "trader"
                     ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
-                    : "border-black/10 text-black/50"
+                    : "border-black/10 text-black/68"
                 }`}
               >
                 تاجر
@@ -186,7 +186,7 @@ export default function AuthGateModal({
               placeholder="كلمة المرور"
               className="w-full rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-brand-secondary"
             />
-            <label className="flex items-start gap-2 text-xs text-black/60">
+            <label className="flex items-start gap-2 text-xs text-black/78">
               <input
                 type="checkbox"
                 checked={agreed}

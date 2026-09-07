@@ -69,12 +69,12 @@ export default function AdminBreedsPage() {
         </button>
       </form>
 
-      <p className="text-sm text-black/40">
+      <p className="text-sm text-black/58">
         السلالات الافتراضية المدمجة بالنظام تظهر دائمًا في النماذج؛ السلالات المضافة هنا تُستخدم لتوسيعها.
       </p>
 
       {loading ? (
-        <p className="text-black/40">جاري التحميل...</p>
+        <p className="text-black/58">جاري التحميل...</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {ANIMAL_TYPES.map((type) => {

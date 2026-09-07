@@ -15,7 +15,7 @@ export default function OwnerGuard({ children }: { children: React.ReactNode }) 
   }, [loading, isSystemOwner, router]);
 
   if (loading || !isSystemOwner) {
-    return <p className="py-24 text-center text-black/40">جاري التحقق من الصلاحيات...</p>;
+    return <p className="py-24 text-center text-black/58">جاري التحقق من الصلاحيات...</p>;
   }
 
   return <>{children}</>;

@@ -24,7 +24,7 @@ export default function LoginPage() {
   }, [authLoading, firebaseUser, router]);
 
   if (authLoading || firebaseUser) {
-    return <p className="py-24 text-center text-black/40">جاري التحميل...</p>;
+    return <p className="py-24 text-center text-black/58">جاري التحميل...</p>;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -91,7 +91,7 @@ export default function LoginPage() {
             {loading ? "جاري الدخول..." : "دخول"}
           </button>
         </form>
-        <p className="mt-6 text-center text-sm text-black/50">
+        <p className="mt-6 text-center text-sm text-black/68">
           ليس لديك حساب؟{" "}
           <Link href="/register" className="font-bold text-brand-primary">
             إنشاء حساب جديد

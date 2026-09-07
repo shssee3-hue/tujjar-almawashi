@@ -92,15 +92,15 @@ export default function TermsPage() {
       <h1 className="mb-2 text-3xl font-extrabold text-brand-primary">
         📄 الشروط والأحكام — موقع تجّار المواشي
       </h1>
-      <p className="mb-10 text-sm text-black/40">آخر تحديث: {new Date().toLocaleDateString("ar-SA")}</p>
+      <p className="mb-10 text-sm text-black/58">آخر تحديث: {new Date().toLocaleDateString("ar-SA")}</p>
 
       <div className="flex flex-col gap-8">
         {SECTIONS.map((s) => (
           <section key={s.title}>
             <h2 className="mb-2 text-lg font-bold text-brand-bg-dark">{s.title}</h2>
-            {s.body && <p className="leading-relaxed text-black/70">{s.body}</p>}
+            {s.body && <p className="leading-relaxed text-black/85">{s.body}</p>}
             {s.items && (
-              <ul className="list-inside list-disc space-y-1 leading-relaxed text-black/70">
+              <ul className="list-inside list-disc space-y-1 leading-relaxed text-black/85">
                 {s.items.map((it) => (
                   <li key={it}>{it}</li>
                 ))}

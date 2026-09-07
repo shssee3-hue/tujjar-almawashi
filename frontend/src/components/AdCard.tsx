@@ -37,7 +37,7 @@ export default function AdCard({ ad }: { ad: Ad }) {
             رقم الإعلان: <bdi>{ad.adCode}</bdi>
           </p>
         )}
-        <p className="line-clamp-1 text-xs text-black/50">
+        <p className="line-clamp-1 text-xs text-black/68">
           {CATEGORY_LABELS[category]} • {ad.region}
         </p>
       </div>

@@ -44,7 +44,7 @@ export default function AdminReportsPage() {
               key={s}
               onClick={() => setFilter(s)}
               className={`rounded-full px-4 py-1.5 text-sm font-bold ${
-                filter === s ? "bg-brand-primary text-white" : "bg-white text-black/50"
+                filter === s ? "bg-brand-primary text-white" : "bg-white text-black/68"
               }`}
             >
               {s === "all" ? "الكل" : s === "open" ? "مفتوح" : "مغلق"}
@@ -54,9 +54,9 @@ export default function AdminReportsPage() {
       </div>
 
       {loading ? (
-        <p className="text-black/40">جاري التحميل...</p>
+        <p className="text-black/58">جاري التحميل...</p>
       ) : filtered.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-black/10 py-10 text-center text-black/40">
+        <p className="rounded-2xl border border-dashed border-black/10 py-10 text-center text-black/58">
           لا توجد بلاغات
         </p>
       ) : (
@@ -81,7 +81,7 @@ export default function AdminReportsPage() {
                 >
                   {r.adTitle || r.adId}
                 </Link>
-                <p className="text-sm text-black/50">{r.reason}</p>
+                <p className="text-sm text-black/68">{r.reason}</p>
                 <p className="text-xs text-black/30">
                   {new Date(r.createdAt).toLocaleString("ar-SA")}
                 </p>

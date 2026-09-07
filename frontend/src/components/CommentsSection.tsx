@@ -120,7 +120,7 @@ export default function CommentsSection({ adId, sellerId }: { adId: string; sell
                 {isAdmin && (
                   <button
                     onClick={() => toggleHidden(c)}
-                    className="text-xs text-black/50 hover:underline"
+                    className="text-xs text-black/68 hover:underline"
                   >
                     {c.hidden ? "إظهار" : "إخفاء"}
                   </button>
@@ -135,7 +135,7 @@ export default function CommentsSection({ adId, sellerId }: { adId: string; sell
                 )}
               </div>
             </div>
-            <p className="text-sm text-black/70">{c.text}</p>
+            <p className="text-sm text-black/85">{c.text}</p>
           </div>
 
           {!isReply && isSeller && (
@@ -163,7 +163,7 @@ export default function CommentsSection({ adId, sellerId }: { adId: string; sell
                       setReplyingTo(null);
                       setReplyText("");
                     }}
-                    className="text-sm text-black/40"
+                    className="text-sm text-black/58"
                   >
                     إلغاء
                   </button>
@@ -209,9 +209,9 @@ export default function CommentsSection({ adId, sellerId }: { adId: string; sell
       </div>
 
       {loading ? (
-        <p className="text-sm text-black/40">جاري التحميل...</p>
+        <p className="text-sm text-black/58">جاري التحميل...</p>
       ) : topLevel.length === 0 ? (
-        <p className="text-sm text-black/40">لا توجد تعليقات بعد — كن أول من يعلّق.</p>
+        <p className="text-sm text-black/58">لا توجد تعليقات بعد — كن أول من يعلّق.</p>
       ) : (
         <div className="flex flex-col gap-4">
           {topLevel.map((c) => (

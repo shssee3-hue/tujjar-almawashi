@@ -63,7 +63,7 @@ export default function ImageUploader({
               type="button"
               onClick={() => cameraInputRef.current?.click()}
               disabled={loading}
-              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-black/20 text-black/40 hover:border-brand-secondary hover:text-brand-primary"
+              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-black/20 text-black/58 hover:border-brand-secondary hover:text-brand-primary"
             >
               <span className="text-2xl">{loading ? "…" : "📷"}</span>
               <span className="text-xs">التقاط صورة</span>
@@ -72,7 +72,7 @@ export default function ImageUploader({
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={loading}
-              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-black/20 text-black/40 hover:border-brand-secondary hover:text-brand-primary"
+              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-black/20 text-black/58 hover:border-brand-secondary hover:text-brand-primary"
             >
               <span className="text-2xl">{loading ? "…" : "+"}</span>
               <span className="text-xs">إضافة صورة</span>
@@ -96,7 +96,7 @@ export default function ImageUploader({
         hidden
         onChange={(e) => handleFiles(e.target.files)}
       />
-      <p className="mt-2 text-xs text-black/40">
+      <p className="mt-2 text-xs text-black/58">
         حتى {MAX_IMAGES} صور حقيقية وواضحة. يتم ضغط الصور تلقائيًا.
       </p>
     </div>

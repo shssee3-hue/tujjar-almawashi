@@ -24,7 +24,7 @@ export default function MaintenanceGate({ children }: { children: React.ReactNod
         <h1 className="mb-2 text-2xl font-extrabold text-brand-primary">
           الموقع تحت الصيانة حاليًا
         </h1>
-        <p className="text-black/50">نعمل على تحسين الخدمة، سنعود قريبًا.</p>
+        <p className="text-black/68">نعمل على تحسين الخدمة، سنعود قريبًا.</p>
       </div>
     );
   }
