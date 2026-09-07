@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { getSiteSettings } from "@/lib/settings";
 import { createCommission } from "@/lib/commissions";
 import { updateAd } from "@/lib/ads";
-import { SiteSettings, CommissionPaymentMethod } from "@/lib/types";
+import { SiteSettings } from "@/lib/types";
 import { fileToCompressedDataUrl } from "@/lib/image";
 
 function formatPrice(n: number) {
@@ -33,7 +33,6 @@ export default function SaleConfirmationModal({
 }) {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [saleAmount, setSaleAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<CommissionPaymentMethod>("applepay");
   const [receiptFile, setReceiptFile] = useState<string>("");
   const [receiptFileName, setReceiptFileName] = useState<string>("");
   const [uploading, setUploading] = useState(false);
@@ -85,7 +84,7 @@ export default function SaleConfirmationModal({
         saleAmount: amountNum,
         commissionRate: rate,
         commissionAmount,
-        paymentMethod,
+        paymentMethod: "bank",
         receiptFile,
       });
       await updateAd(adId, { status: "ended" });
@@ -148,49 +147,20 @@ export default function SaleConfirmationModal({
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium">طريقة الدفع *</label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("applepay")}
-                  className={`flex-1 rounded-xl border py-2.5 text-sm font-medium ${
-                    paymentMethod === "applepay"
-                      ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
-                      : "border-black/10 text-black/50"
-                  }`}
-                >
-                   Apple Pay
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("bank")}
-                  className={`flex-1 rounded-xl border py-2.5 text-sm font-medium ${
-                    paymentMethod === "bank"
-                      ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
-                      : "border-black/10 text-black/50"
-                  }`}
-                >
-                  تحويل بنكي
-                </button>
+              <label className="mb-1 block text-sm font-medium">طريقة الدفع</label>
+              <div className="rounded-xl border border-black/10 bg-brand-primary/5 px-4 py-2.5 text-sm font-medium text-brand-primary">
+                تحويل بنكي
               </div>
               <div className="mt-2 rounded-xl border border-dashed border-black/10 p-3 text-sm">
-                {paymentMethod === "applepay" ? (
-                  settings.applePayLink ? (
-                    <a
-                      href={settings.applePayLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-bold text-brand-primary underline"
-                    >
-                      رابط الدفع عبر Apple Pay
-                    </a>
-                  ) : (
-                    <span className="text-black/40">لم يضبط المدير رابط Apple Pay بعد</span>
-                  )
-                ) : settings.bankAccountNumber ? (
-                  <span dir="ltr" className="font-bold">
-                    {settings.bankAccountNumber}
-                  </span>
+                {settings.bankAccountNumber ? (
+                  <>
+                    <span className="block text-xs text-black/40">
+                      حوّل مبلغ العمولة إلى الحساب التالي ثم ارفع الإيصال:
+                    </span>
+                    <span dir="ltr" className="mt-1 block font-bold">
+                      {settings.bankAccountNumber}
+                    </span>
+                  </>
                 ) : (
                   <span className="text-black/40">لم يضبط المدير رقم الحساب البنكي بعد</span>
                 )}

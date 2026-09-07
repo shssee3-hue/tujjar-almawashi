@@ -45,7 +45,7 @@ export default function AuthGateModal({
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     if (!agreed) {
-      toast.error("يجب الموافقة على الشروط والأحكام");
+      toast.error("يجب الموافقة على الشروط والأحكام وسياسة الخصوصية");
       return;
     }
     setLoading(true);
@@ -197,6 +197,10 @@ export default function AuthGateModal({
                 أوافق على{" "}
                 <Link href="/terms" target="_blank" className="font-bold text-brand-primary underline">
                   الشروط والأحكام
+                </Link>{" "}
+                و{" "}
+                <Link href="/privacy" target="_blank" className="font-bold text-brand-primary underline">
+                  سياسة الخصوصية
                 </Link>
               </span>
             </label>

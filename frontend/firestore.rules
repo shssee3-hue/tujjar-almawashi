@@ -36,23 +36,21 @@ service cloud.firestore {
     // info via denormalized fields on the ad itself, not a users lookup).
     match /users/{userId} {
       allow read: if isOwner(userId) || isSystemOwner();
-      // reportsCount/adsCount must start at their guaranteed initial value —
-      // a direct API call (bypassing createUserProfile()) could otherwise
-      // self-assign a fake report/ad count from day one.
+      // A new profile can only ever be created as role "user"; every other
+      // trust flag (banned, commissionBlock) is absent at creation and only
+      // an admin/owner action adds it later.
       allow create: if isOwner(userId)
-        && request.resource.data.role == "user"
-        && request.resource.data.reportsCount == 0
-        && request.resource.data.adsCount == 0;
+        && request.resource.data.role == "user";
       allow update: if isSystemOwner()
         || (isOwner(userId)
-            // owners can edit their own profile but never escalate role/ban/reportsCount.
-            // "banned" is never set at profile creation (only an admin ever
-            // writes it later via setUserBanned), so direct dot access would
-            // throw and deny this whole rule for every never-banned account —
-            // i.e. almost everyone — hence get() with a default here.
+            // the account holder may edit their own name/phone/email but can
+            // never change the fields that record trust/moderation state.
+            // "banned"/"commissionBlock" are absent until an admin sets them,
+            // so compare via get() with a default rather than direct access
+            // (which throws and denies for every account that never had one).
             && request.resource.data.role == resource.data.role
             && request.resource.data.get("banned", false) == resource.data.get("banned", false)
-            && request.resource.data.reportsCount == resource.data.reportsCount);
+            && request.resource.data.get("commissionBlock", false) == resource.data.get("commissionBlock", false));
       allow delete: if isSystemOwner();
     }
 
@@ -83,6 +81,9 @@ service cloud.firestore {
         && request.resource.data.sellerId == request.auth.uid
         && request.resource.data.sellerName == ownSellerProfile().name
         && request.resource.data.sellerType == ownSellerProfile().accountType
+        // A seller flagged for an unpaid commission cannot post new ads until
+        // the owner clears the flag (see users/{uid}.commissionBlock).
+        && ownSellerProfile().get("commissionBlock", false) == false
         && request.resource.data.status == "active"
         && request.resource.data.oathAccepted == true
         && request.resource.data.reportsCount == 0
@@ -125,6 +126,34 @@ service cloud.firestore {
       allow delete: if isSystemOwner();
     }
 
+    // adsPrivate/{adId} — the seller's phone/WhatsApp numbers for one ad,
+    // deliberately kept OUT of the world-readable ads/{adId} document so they
+    // can't be harvested by reading the ads collection through the SDK.
+    // Shape: { sellerId, phoneNumber, whatsapp, showCallButton,
+    // showWhatsappButton }. Read is allowed only for:
+    //   - an admin/owner (contact-detail moderation), or
+    //   - the seller themselves, or
+    //   - any signed-in user, but only once the seller has switched on at
+    //     least one contact button (otherwise the numbers stay private).
+    // A logged-out visitor can never read them at all.
+    match /adsPrivate/{adId} {
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.sellerId == request.auth.uid)
+        || (isSignedIn()
+            && (resource.data.get("showCallButton", false) == true
+                || resource.data.get("showWhatsappButton", false) == true));
+      // Only the ad's real seller may create/update the private record, and
+      // the sellerId is pinned to them and immutable thereafter.
+      allow create: if isSignedIn()
+        && request.resource.data.sellerId == request.auth.uid
+        && get(/databases/$(database)/documents/ads/$(adId)).data.sellerId == request.auth.uid;
+      allow update: if isSignedIn()
+        && resource.data.sellerId == request.auth.uid
+        && request.resource.data.sellerId == resource.data.sellerId;
+      allow delete: if isSystemOwner()
+        || (isSignedIn() && resource.data.sellerId == request.auth.uid);
+    }
+
     // comments/{commentId} — per-ad discussion. A reply is just a regular
     // comment with replyToId set to its parent's id; the UI only exposes
     // replying to the ad's own seller, but that's a UI-level convention, not
@@ -150,11 +179,16 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // reports/{reportId}
+    // reports/{reportId} — one report per (ad, reporter). The document id is
+    // pinned to "<adId>_<uid>" so a second filing lands on the same doc; since
+    // only admins may `update`, that repeat write is rejected server-side even
+    // if the client's own dedup check is bypassed. Stops report-count
+    // inflation / harassment of a competitor's ad.
     match /reports/{reportId} {
       allow read: if isAdmin();
       allow create: if isSignedIn()
-        && request.resource.data.reporterId == request.auth.uid;
+        && request.resource.data.reporterId == request.auth.uid
+        && reportId == request.resource.data.adId + "_" + request.auth.uid;
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
@@ -207,22 +241,54 @@ service cloud.firestore {
     // commissions/{commissionId} — a seller's self-reported sale + the
     // commission owed on it, submitted via "تم البيع", reviewed by admin.
     match /commissions/{commissionId} {
+      // The rate the admin has set site-wide; a missing settings doc or field
+      // falls back to the same 1.5% default the client uses.
+      function siteRate() {
+        return exists(/databases/$(database)/documents/settings/site)
+          ? get(/databases/$(database)/documents/settings/site).data.get("commissionRate", 1.5)
+          : 1.5;
+      }
+
       // A seller can see their own submissions (e.g. to check their status
       // later); admin/owner can see all of them for review.
       allow read: if isAdmin()
         || (isSignedIn() && resource.data.sellerId == request.auth.uid);
       // Only the ad's actual seller may file a claim for it, and only as
-      // "pending" — nobody can create one that's already approved/rejected.
+      // "pending". The sale amount, the rate, and the resulting commission
+      // are all re-checked here — a direct API call can't submit a zeroed or
+      // under-stated commission by bypassing the client's own arithmetic.
+      // The ad must still be "active" (one open claim per ad; a rejected
+      // claim reopens the ad, an approved one leaves it "ended").
       allow create: if isSignedIn()
         && request.resource.data.sellerId == request.auth.uid
         && request.resource.data.status == "pending"
-        && get(/databases/$(database)/documents/ads/$(request.resource.data.adId)).data.sellerId == request.auth.uid;
+        && get(/databases/$(database)/documents/ads/$(request.resource.data.adId)).data.sellerId == request.auth.uid
+        && get(/databases/$(database)/documents/ads/$(request.resource.data.adId)).data.status == "active"
+        && request.resource.data.saleAmount > 0
+        && request.resource.data.commissionRate == siteRate()
+        && request.resource.data.commissionAmount >=
+             request.resource.data.saleAmount * siteRate() / 100 - 1
+        && request.resource.data.commissionAmount <=
+             request.resource.data.saleAmount * siteRate() / 100 + 1;
       // Only admin/owner can review it, and only the review fields —
       // the seller's original claim (amounts, receipt, payment method)
       // can never be edited after submission by anyone.
       allow update: if isAdmin()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "reviewedAt"]);
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(["status", "reviewedAt", "rejectionReason"]);
       allow delete: if isAdmin();
+    }
+
+    // deletionRequests/{userId} — a user's PDPL request to have their account
+    // and data erased. Id is pinned to the requester's uid (one open request
+    // per user); the owner reads them in /dashboard/users, then runs the
+    // actual deletion and clears the request.
+    match /deletionRequests/{userId} {
+      allow read: if isAdmin();
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == "open";
+      allow update, delete: if isAdmin();
     }
 
     // password_resets/{resetId} — OTP records for the phone-based "forgot

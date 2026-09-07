@@ -39,6 +39,9 @@ export default function AdsExplorer() {
   const [category, setCategory] = useState<AdCategory | "">("");
   const [region, setRegion] = useState("");
   const [label, setLabel] = useState("");
+  // Free-text narrowing of the already-loaded pages (title + description),
+  // client-side only — same approach as the breed/subCategory refinement.
+  const [text, setText] = useState("");
   // A visitor who arrived via a homepage tile/search (URL already carries
   // animalType or category) is on a "section page" — the section field
   // locks to that one value and no longer offers switching to another
@@ -126,6 +129,14 @@ export default function AdsExplorer() {
       .finally(() => setLoading(false));
   }, [filters]);
 
+  const visibleAds = useMemo(() => {
+    const q = text.trim().toLowerCase();
+    if (!q) return ads;
+    return ads.filter((a) =>
+      `${a.title} ${a.description}`.toLowerCase().includes(q)
+    );
+  }, [ads, text]);
+
   function loadMore() {
     if (!cursor || loadingMore) return;
     setLoadingMore(true);
@@ -169,6 +180,14 @@ export default function AdsExplorer() {
     <div className="mx-auto max-w-7xl px-4 py-6">
       <BackButton />
       <h1 className="mb-3 text-xl font-extrabold text-brand-bg-dark">{title}</h1>
+
+      <input
+        type="text"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="ابحث في العنوان والوصف..."
+        className="mb-3 w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm shadow-sm outline-none focus:border-brand-secondary"
+      />
 
       <form
         onSubmit={applySearch}
@@ -234,23 +253,23 @@ export default function AdsExplorer() {
       </form>
 
       <div className="mb-3 text-sm text-black/50">
-        {ads.length}
-        {cursor ? "+" : ""} إعلان
+        {text.trim() ? visibleAds.length : ads.length}
+        {!text.trim() && cursor ? "+" : ""} إعلان
       </div>
 
       {loading ? (
         <p className="py-20 text-center text-black/40">جاري التحميل...</p>
-      ) : ads.length === 0 ? (
+      ) : visibleAds.length === 0 ? (
         <p className="py-20 text-center text-black/40">لا توجد نتائج مطابقة</p>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-            {ads.map((ad) => (
+            {visibleAds.map((ad) => (
               <AdCard key={ad.id} ad={ad} />
             ))}
           </div>
 
-          {cursor && (
+          {cursor && !text.trim() && (
             <div className="mt-6 flex justify-center">
               <button
                 onClick={loadMore}

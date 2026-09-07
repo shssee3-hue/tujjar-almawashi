@@ -28,6 +28,14 @@ export async function listCommissionsAdmin(): Promise<Commission[]> {
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Commission, "id">) }));
 }
 
-export async function setCommissionStatus(id: string, status: CommissionStatus) {
-  await updateDoc(doc(db, "commissions", id), { status, reviewedAt: Date.now() });
+export async function setCommissionStatus(
+  id: string,
+  status: CommissionStatus,
+  rejectionReason?: string
+) {
+  await updateDoc(doc(db, "commissions", id), {
+    status,
+    reviewedAt: Date.now(),
+    ...(status === "rejected" ? { rejectionReason: rejectionReason || "" } : {}),
+  });
 }

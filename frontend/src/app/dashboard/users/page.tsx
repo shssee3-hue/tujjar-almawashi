@@ -2,8 +2,14 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { listAllUsersAdmin, setUserBanned, deleteUserPermanently } from "@/lib/users";
-import { UserProfile } from "@/lib/types";
+import {
+  listAllUsersAdmin,
+  setUserBanned,
+  setUserCommissionBlock,
+  deleteUserPermanently,
+  listDeletionRequests,
+} from "@/lib/users";
+import { UserProfile, DeletionRequest } from "@/lib/types";
 import OwnerGuard from "@/components/OwnerGuard";
 
 type PendingAction = { type: "ban" | "delete"; user: UserProfile };
@@ -25,12 +31,16 @@ function UsersContent() {
   const [search, setSearch] = useState("");
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [working, setWorking] = useState(false);
+  const [deletionRequests, setDeletionRequests] = useState<DeletionRequest[]>([]);
 
   useEffect(() => {
     listAllUsersAdmin()
       .then(setUsers)
       .finally(() => setLoading(false));
+    listDeletionRequests().then(setDeletionRequests).catch(() => {});
   }, []);
+
+  const deletionUids = new Set(deletionRequests.map((d) => d.uid));
 
   const filtered = users.filter((u) =>
     `${u.name} ${u.email} ${u.phoneNumber}`.toLowerCase().includes(search.toLowerCase())
@@ -42,6 +52,18 @@ function UsersContent() {
     await setUserBanned(u.id, false);
     setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, banned: false } : x)));
     toast.success("تم رفع الحظر");
+  }
+
+  // Toggles the "unpaid commission" flag — while set, firestore.rules blocks
+  // the seller from creating new ads. No confirmation: it's reversible and
+  // less severe than a ban.
+  async function toggleCommissionBlock(u: UserProfile) {
+    const next = !u.commissionBlock;
+    await setUserCommissionBlock(u.id, next);
+    setUsers((prev) =>
+      prev.map((x) => (x.id === u.id ? { ...x, commissionBlock: next } : x))
+    );
+    toast.success(next ? "تم منع المستخدم من إضافة إعلانات" : "تم رفع المنع");
   }
 
   async function confirmPendingAction() {
@@ -57,6 +79,7 @@ function UsersContent() {
       } else {
         await deleteUserPermanently(pending.user.id);
         setUsers((prev) => prev.filter((x) => x.id !== pending.user.id));
+        setDeletionRequests((prev) => prev.filter((d) => d.uid !== pending.user.id));
         toast.success("تم حذف بيانات المستخدم. لحذف حساب الدخول نهائيًا: Firebase Console ← Authentication");
       }
       setPending(null);
@@ -79,6 +102,23 @@ function UsersContent() {
         />
       </div>
 
+      {deletionRequests.length > 0 && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm">
+          <p className="mb-1 font-bold text-red-700">
+            طلبات حذف بيانات معلّقة ({deletionRequests.length}) — نفّذ «حذف نهائي»
+            خلال 30 يومًا من تاريخ الطلب
+          </p>
+          <ul className="list-inside list-disc text-red-700/80">
+            {deletionRequests.map((d) => (
+              <li key={d.uid}>
+                {d.name} — {d.email} —{" "}
+                {new Date(d.requestedAt).toLocaleDateString("ar-SA")}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {loading ? (
         <p className="text-black/40">جاري التحميل...</p>
       ) : (
@@ -92,6 +132,7 @@ function UsersContent() {
                 <th className="px-4 py-3">نوع الحساب</th>
                 <th className="px-4 py-3">الدور</th>
                 <th className="px-4 py-3">الحالة</th>
+                <th className="px-4 py-3">منع النشر (عمولة)</th>
                 <th className="px-4 py-3">حظر المستخدم</th>
                 <th className="px-4 py-3">حذف الحساب نهائيًا</th>
               </tr>
@@ -126,6 +167,28 @@ function UsersContent() {
                     >
                       {u.banned ? "محظور" : "نشط"}
                     </span>
+                    {u.commissionBlock && (
+                      <span className="mt-1 block rounded-full bg-orange-100 px-2 py-1 text-center text-xs font-bold text-orange-600">
+                        عمولة غير مسددة
+                      </span>
+                    )}
+                    {deletionUids.has(u.id) && (
+                      <span className="mt-1 block rounded-full bg-red-100 px-2 py-1 text-center text-xs font-bold text-red-700">
+                        طلب حذف بيانات
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {u.role !== "owner" && (
+                      <button
+                        onClick={() => toggleCommissionBlock(u)}
+                        className={`text-xs font-bold ${
+                          u.commissionBlock ? "text-brand-primary" : "text-red-600"
+                        }`}
+                      >
+                        {u.commissionBlock ? "رفع المنع" : "منع"}
+                      </button>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {u.role !== "owner" &&

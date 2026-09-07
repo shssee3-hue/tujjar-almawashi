@@ -3,7 +3,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { createReport } from "@/lib/reports";
+import { createReport, ALREADY_REPORTED } from "@/lib/reports";
 import { REPORT_REASONS } from "@/lib/constants";
 
 export default function ReportButton({ adId, adTitle }: { adId: string; adTitle: string }) {
@@ -22,8 +22,12 @@ export default function ReportButton({ adId, adTitle }: { adId: string; adTitle:
       await createReport({ adId, adTitle, reporterId: firebaseUser.uid, reason });
       toast.success("تم البلاغ");
       setOpen(false);
-    } catch {
-      toast.error("تعذر إرسال البلاغ");
+    } catch (e) {
+      toast.error(
+        (e as { message?: string })?.message === ALREADY_REPORTED
+          ? "سبق أن أبلغت عن هذا الإعلان"
+          : "تعذر إرسال البلاغ"
+      );
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { listCommissionsAdmin, setCommissionStatus } from "@/lib/commissions";
+import { updateAd } from "@/lib/ads";
 import { Commission, CommissionStatus } from "@/lib/types";
 
 const STATUS_LABEL: Record<CommissionStatus, string> = {
@@ -43,10 +44,32 @@ export default function AdminCommissionsPage() {
     .filter((c) => filter === "all" || c.status === filter)
     .filter((c) => !normalizedSearch || (c.adCode || "").toLowerCase().includes(normalizedSearch));
 
-  async function handleStatus(id: string, status: CommissionStatus) {
-    await setCommissionStatus(id, status);
-    setCommissions((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
-    toast.success(status === "approved" ? "تم قبول العمولة" : "تم رفض العمولة");
+  async function approve(c: Commission) {
+    // The ad was already set to "ended" when the seller filed the claim, so
+    // approval just records the decision.
+    await setCommissionStatus(c.id, "approved");
+    setCommissions((prev) =>
+      prev.map((x) => (x.id === c.id ? { ...x, status: "approved" } : x))
+    );
+    toast.success("تم قبول العمولة وإغلاق الإعلان");
+  }
+
+  async function reject(c: Commission) {
+    const reason = window.prompt("سبب الرفض (يظهر للبائع):", "")?.trim();
+    if (reason === undefined) return; // cancelled
+    try {
+      await setCommissionStatus(c.id, "rejected", reason);
+      // A rejected claim reopens the ad so the seller can re-file.
+      await updateAd(c.adId, { status: "active" });
+      setCommissions((prev) =>
+        prev.map((x) =>
+          x.id === c.id ? { ...x, status: "rejected", rejectionReason: reason } : x
+        )
+      );
+      toast.success("تم رفض العمولة وإعادة تنشيط الإعلان");
+    } catch {
+      toast.error("تعذر تنفيذ الرفض، حاول مرة أخرى");
+    }
   }
 
   return (
@@ -122,7 +145,7 @@ export default function AdminCommissionsPage() {
                     {formatPrice(c.commissionAmount)} ريال
                     <span className="text-black/40"> ({c.commissionRate}%)</span>
                   </td>
-                  <td className="px-4 py-3">{c.paymentMethod === "applepay" ? "Apple Pay" : "تحويل بنكي"}</td>
+                  <td className="px-4 py-3">تحويل بنكي</td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => setPreview(c.receiptFile)}
@@ -135,18 +158,23 @@ export default function AdminCommissionsPage() {
                     <span className={`rounded-full px-2 py-1 text-xs font-bold ${STATUS_COLOR[c.status]}`}>
                       {STATUS_LABEL[c.status]}
                     </span>
+                    {c.status === "rejected" && c.rejectionReason && (
+                      <p className="mt-1 max-w-[16rem] text-xs text-black/40">
+                        السبب: {c.rejectionReason}
+                      </p>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {c.status === "pending" && (
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleStatus(c.id, "approved")}
+                          onClick={() => approve(c)}
                           className="text-xs font-bold text-green-600"
                         >
                           قبول
                         </button>
                         <button
-                          onClick={() => handleStatus(c.id, "rejected")}
+                          onClick={() => reject(c)}
                           className="text-xs font-bold text-red-600"
                         >
                           رفض

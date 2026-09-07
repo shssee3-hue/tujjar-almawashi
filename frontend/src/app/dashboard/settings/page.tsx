@@ -102,15 +102,6 @@ function SettingsContent() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">رابط Apple Pay</label>
-          <input
-            dir="ltr"
-            value={settings.applePayLink}
-            onChange={(e) => setSettings({ ...settings, applePayLink: e.target.value })}
-            className="w-full rounded-xl border border-black/10 px-4 py-2.5 text-right"
-          />
-        </div>
-        <div>
           <label className="mb-1 block text-sm font-medium">
             الصيغة القانونية المعتمدة للعمولة
           </label>
