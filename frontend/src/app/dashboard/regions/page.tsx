@@ -75,7 +75,7 @@ export default function AdminRegionsPage() {
       </div>
 
       {loading ? (
-        <p className="text-black/40">جاري التحميل...</p>
+        <p className="text-black/58">جاري التحميل...</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-black/5 bg-white shadow-sm">
           <table className="w-full text-sm">
@@ -101,7 +101,7 @@ export default function AdminRegionsPage() {
             </tbody>
           </table>
           {items.length === 0 && (
-            <p className="py-10 text-center text-black/40">لم تتم إضافة مدن مخصصة بعد</p>
+            <p className="py-10 text-center text-black/58">لم تتم إضافة مدن مخصصة بعد</p>
           )}
         </div>
       )}

@@ -120,7 +120,7 @@ function UsersContent() {
       )}
 
       {loading ? (
-        <p className="text-black/40">جاري التحميل...</p>
+        <p className="text-black/58">جاري التحميل...</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-black/5 bg-white shadow-sm">
           <table className="w-full text-sm">
@@ -153,7 +153,7 @@ function UsersContent() {
                           ? "bg-brand-secondary/20 text-brand-primary"
                           : u.role === "admin"
                             ? "bg-brand-primary/10 text-brand-primary"
-                            : "bg-black/5 text-black/50"
+                            : "bg-black/5 text-black/68"
                       }`}
                     >
                       {ROLE_LABEL[u.role] || u.role}
@@ -223,7 +223,7 @@ function UsersContent() {
             </tbody>
           </table>
           {filtered.length === 0 && (
-            <p className="py-10 text-center text-black/40">لا يوجد مستخدمون مطابقون</p>
+            <p className="py-10 text-center text-black/58">لا يوجد مستخدمون مطابقون</p>
           )}
         </div>
       )}
@@ -242,8 +242,8 @@ function UsersContent() {
                 ? "هل تريد حظر هذا المستخدم؟"
                 : "هل أنت متأكد أنك تريد حذف هذا الحساب نهائيًا؟"}
             </h3>
-            <p className="mb-1 text-sm font-medium text-black/60">{pending.user.name}</p>
-            <p className="mb-5 text-sm text-black/50">
+            <p className="mb-1 text-sm font-medium text-black/78">{pending.user.name}</p>
+            <p className="mb-5 text-sm text-black/68">
               {pending.type === "ban"
                 ? "لن يتمكن من تسجيل الدخول أو إضافة إعلانات."
                 : "لن يمكن استعادته بعد الحذف."}
@@ -259,7 +259,7 @@ function UsersContent() {
               <button
                 onClick={() => setPending(null)}
                 disabled={working}
-                className="flex-1 rounded-xl border border-black/10 py-2.5 font-bold text-black/60 disabled:opacity-50"
+                className="flex-1 rounded-xl border border-black/10 py-2.5 font-bold text-black/78 disabled:opacity-50"
               >
                 إلغاء
               </button>

@@ -31,7 +31,7 @@ export default function PasswordInput({
       <button
         type="button"
         onClick={() => setVisible((v) => !v)}
-        className="absolute inset-y-0 left-0 flex w-11 items-center justify-center text-black/40 hover:text-black/70"
+        className="absolute inset-y-0 left-0 flex w-11 items-center justify-center text-black/58 hover:text-black/85"
         aria-label={visible ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
         tabIndex={-1}
       >

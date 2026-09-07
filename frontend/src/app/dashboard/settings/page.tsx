@@ -29,7 +29,7 @@ function SettingsContent() {
   }
 
   if (!settings) {
-    return <p className="py-10 text-center text-black/40">جاري التحميل...</p>;
+    return <p className="py-10 text-center text-black/58">جاري التحميل...</p>;
   }
 
   return (
@@ -117,7 +117,7 @@ function SettingsContent() {
         <h2 className="-mb-2 font-bold text-brand-bg-dark">
           نص إلزامي — قسمَي «خدمات» و«نقل مواشي»
         </h2>
-        <p className="-mt-3 text-xs text-black/40">
+        <p className="-mt-3 text-xs text-black/58">
           يظهر كخانة ثابتة غير قابلة للتعديل داخل نموذج إضافة الإعلان، فقط
           عند اختيار أحد هذين القسمين — لا يقدر المستخدم يمسحه أو يغيّره،
           ولا يمكن نشر الإعلان بدونه.

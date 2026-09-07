@@ -78,7 +78,7 @@ function AdminsContent() {
       </form>
 
       {loading ? (
-        <p className="text-black/40">جاري التحميل...</p>
+        <p className="text-black/58">جاري التحميل...</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-black/5 bg-white shadow-sm">
           <table className="w-full text-sm">
@@ -119,7 +119,7 @@ function AdminsContent() {
             </tbody>
           </table>
           {admins.length === 0 && (
-            <p className="py-10 text-center text-black/40">لا يوجد مشرفون حاليًا</p>
+            <p className="py-10 text-center text-black/58">لا يوجد مشرفون حاليًا</p>
           )}
         </div>
       )}

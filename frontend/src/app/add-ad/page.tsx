@@ -220,14 +220,14 @@ function AddAdForm() {
   }
 
   if (authLoading || loadingAd) {
-    return <p className="py-24 text-center text-black/40">جاري التحميل...</p>;
+    return <p className="py-24 text-center text-black/58">جاري التحميل...</p>;
   }
 
   if (!firebaseUser) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10">
         <BackButton />
-        <div className="rounded-2xl border border-dashed border-black/10 py-20 text-center text-black/40">
+        <div className="rounded-2xl border border-dashed border-black/10 py-20 text-center text-black/58">
           يجب تسجيل الدخول لإضافة إعلان
         </div>
         <AuthGateModal open onClose={() => router.push("/")} onSuccess={handleSuccess} />
@@ -281,12 +281,12 @@ function AddAdForm() {
         <div className="rounded-2xl border border-black/5 bg-white p-6 shadow-sm">
           <ImageGallery images={images} alt={title} />
           <div className="mt-6">
-            <span className="rounded-full bg-black/5 px-3 py-1 text-xs font-bold text-black/50">
+            <span className="rounded-full bg-black/5 px-3 py-1 text-xs font-bold text-black/68">
               {CATEGORY_LABELS[category]}
               {displaySubCategory && ` · ${displaySubCategory}`}
             </span>
             <h1 className="mt-3 text-2xl font-extrabold text-brand-bg-dark">{title}</h1>
-            <p className="mt-1 text-sm text-black/50">
+            <p className="mt-1 text-sm text-black/68">
               {city && `${city}، `}
               {region} — {country}
             </p>
@@ -304,19 +304,19 @@ function AddAdForm() {
             {isLivestock && (
               <div className="mt-6 grid grid-cols-2 gap-3 rounded-2xl bg-brand-bg-light p-4 text-sm sm:grid-cols-4">
                 <div>
-                  <p className="text-black/40">النوع</p>
+                  <p className="text-black/58">النوع</p>
                   <p className="font-bold">{animalType}</p>
                 </div>
                 <div>
-                  <p className="text-black/40">السلالة</p>
+                  <p className="text-black/58">السلالة</p>
                   <p className="font-bold">{breed || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-black/40">العمر</p>
+                  <p className="text-black/58">العمر</p>
                   <p className="font-bold">{age || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-black/40">الوزن</p>
+                  <p className="text-black/58">الوزن</p>
                   <p className="font-bold">{weight ? `${weight} كجم` : "—"}</p>
                 </div>
               </div>
@@ -324,19 +324,19 @@ function AddAdForm() {
 
             <div className="mt-6">
               <h2 className="mb-2 font-bold text-brand-bg-dark">الوصف</h2>
-              <p className="whitespace-pre-line leading-relaxed text-black/70">{description}</p>
+              <p className="whitespace-pre-line leading-relaxed text-black/85">{description}</p>
             </div>
 
             {requiresNotice && (
               <div className="mt-6 rounded-xl border border-black/10 bg-black/5 p-4">
-                <p className="mb-1 flex items-center gap-1.5 text-sm font-bold text-black/60">
+                <p className="mb-1 flex items-center gap-1.5 text-sm font-bold text-black/78">
                   🔒 نص إلزامي
                 </p>
-                <p className="leading-relaxed text-black/70">{noticeText}</p>
+                <p className="leading-relaxed text-black/85">{noticeText}</p>
               </div>
             )}
 
-            <div className="mt-6 text-sm text-black/50">
+            <div className="mt-6 text-sm text-black/68">
               {showCallButton || showWhatsappButton ? (
                 <>
                   {showCallButton && `📞 ${phoneNumber}`}
@@ -363,7 +363,7 @@ function AddAdForm() {
         <div className="mt-4 flex gap-3">
           <button
             onClick={() => setStep("form")}
-            className="flex-1 rounded-xl border border-black/10 py-3 font-bold text-black/60"
+            className="flex-1 rounded-xl border border-black/10 py-3 font-bold text-black/78"
           >
             تعديل الإعلان
           </button>
@@ -413,10 +413,10 @@ function AddAdForm() {
             <label className="mb-1 flex items-center gap-1.5 text-sm font-medium">
               🔒 نص إلزامي — غير قابل للتعديل *
             </label>
-            <div className="w-full rounded-xl border border-black/10 bg-black/5 px-4 py-2.5 leading-relaxed text-black/70">
+            <div className="w-full rounded-xl border border-black/10 bg-black/5 px-4 py-2.5 leading-relaxed text-black/85">
               {noticeText || "جاري تحميل النص..."}
             </div>
-            <p className="mt-1 text-xs text-black/40">
+            <p className="mt-1 text-xs text-black/58">
               هذا النص ثابت من إدارة المنصة ولا يمكن تعديله أو حذفه، وهو جزء
               إلزامي من الإعلان في هذا القسم.
             </p>
@@ -654,7 +654,7 @@ function AddAdForm() {
               💬 إظهار زر واتساب
             </label>
           </div>
-          <p className="mt-2 text-xs text-black/40">
+          <p className="mt-2 text-xs text-black/58">
             رقمك لا يظهر تلقائيًا للمشترين — لن يظهر إلا إذا فعّلت أحد الخيارين
             أعلاه. يمكنك أيضًا كتابته يدويًا داخل الوصف إن رغبت بإظهاره دون
             تفعيل أي زر.
@@ -679,7 +679,7 @@ function AddAdForm() {
 
 export default function AddAdPage() {
   return (
-    <Suspense fallback={<p className="py-24 text-center text-black/40">جاري التحميل...</p>}>
+    <Suspense fallback={<p className="py-24 text-center text-black/58">جاري التحميل...</p>}>
       <AddAdForm />
     </Suspense>
   );

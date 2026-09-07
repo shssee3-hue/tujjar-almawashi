@@ -53,7 +53,7 @@ export default function AdDetailsClient() {
   }, [id, firebaseUser]);
 
   if (ad === undefined) {
-    return <p className="py-24 text-center text-black/40">جاري التحميل...</p>;
+    return <p className="py-24 text-center text-black/58">جاري التحميل...</p>;
   }
 
   if (ad === null || ad.status === "deleted") {
@@ -61,7 +61,7 @@ export default function AdDetailsClient() {
       <div className="mx-auto max-w-6xl px-4 py-10">
         <BackButton fallbackHref="/ads" />
         <div className="py-16 text-center">
-          <p className="mb-4 text-black/50">هذا الإعلان غير موجود أو تم حذفه</p>
+          <p className="mb-4 text-black/68">هذا الإعلان غير موجود أو تم حذفه</p>
           <Link href="/ads" className="font-bold text-brand-primary">
             العودة لجميع الإعلانات
           </Link>
@@ -97,12 +97,12 @@ export default function AdDetailsClient() {
               )}
             </div>
             {ad.adCode && (
-              <p className="mt-0.5 text-xs text-black/40">
+              <p className="mt-0.5 text-xs text-black/58">
                 رقم الإعلان: <bdi className="font-medium">{ad.adCode}</bdi>
               </p>
             )}
-            <div className="mt-1 flex items-center gap-2 text-sm text-black/50">
-              <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs font-bold text-black/60">
+            <div className="mt-1 flex items-center gap-2 text-sm text-black/68">
+              <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs font-bold text-black/78">
                 {CATEGORY_LABELS[category]}
                 {ad.subCategory && ` · ${ad.subCategory}`}
               </span>
@@ -126,19 +126,19 @@ export default function AdDetailsClient() {
             {category === "livestock" && (
               <div className="mt-6 grid grid-cols-2 gap-3 rounded-2xl border border-black/5 bg-white p-4 text-sm sm:grid-cols-4">
                 <div>
-                  <p className="text-black/40">النوع</p>
+                  <p className="text-black/58">النوع</p>
                   <p className="font-bold">{ad.animalType}</p>
                 </div>
                 <div>
-                  <p className="text-black/40">السلالة</p>
+                  <p className="text-black/58">السلالة</p>
                   <p className="font-bold">{ad.breed || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-black/40">العمر</p>
+                  <p className="text-black/58">العمر</p>
                   <p className="font-bold">{ad.age}</p>
                 </div>
                 <div>
-                  <p className="text-black/40">الوزن</p>
+                  <p className="text-black/58">الوزن</p>
                   <p className="font-bold">{ad.weight ? `${ad.weight} كجم` : "—"}</p>
                 </div>
               </div>
@@ -150,7 +150,7 @@ export default function AdDetailsClient() {
 
             <div className="mt-6">
               <h2 className="mb-2 font-bold text-brand-bg-dark">الوصف</h2>
-              <p className="whitespace-pre-line leading-relaxed text-black/70">
+              <p className="whitespace-pre-line leading-relaxed text-black/85">
                 {ad.description}
               </p>
             </div>
@@ -167,7 +167,7 @@ export default function AdDetailsClient() {
             </div>
             <div>
               <p className="font-bold">{ad.sellerName}</p>
-              <p className="text-xs text-black/40">
+              <p className="text-xs text-black/58">
                 {ad.sellerType === "trader" ? "تاجر" : "فرد"}
               </p>
             </div>
@@ -193,7 +193,7 @@ export default function AdDetailsClient() {
               </a>
             )}
             {(ad.showCallButton || ad.showWhatsappButton) && !contact && !firebaseUser && (
-              <p className="text-center text-sm text-black/40">
+              <p className="text-center text-sm text-black/58">
                 <Link href="/login" className="font-bold text-brand-primary">
                   سجّل الدخول
                 </Link>{" "}
@@ -201,7 +201,7 @@ export default function AdDetailsClient() {
               </p>
             )}
             {!ad.showCallButton && !ad.showWhatsappButton && (
-              <p className="text-center text-sm text-black/40">
+              <p className="text-center text-sm text-black/58">
                 لم يفعّل البائع إظهار رقم تواصل — يمكنك التواصل عبر التعليقات.
               </p>
             )}
@@ -210,7 +210,7 @@ export default function AdDetailsClient() {
           <div className="mt-6 flex flex-col gap-2 border-t border-black/5 pt-4">
             {isOwner && ad.status === "active" && (
               <div className="flex flex-col gap-2 rounded-xl bg-green-50 p-3">
-                <label className="flex cursor-pointer items-start gap-2 text-xs font-medium text-black/70">
+                <label className="flex cursor-pointer items-start gap-2 text-xs font-medium text-black/85">
                   <input
                     type="checkbox"
                     checked={saleConfirmChecked}
@@ -222,7 +222,7 @@ export default function AdDetailsClient() {
                 <button
                   onClick={() => setSaleModalOpen(true)}
                   disabled={!saleConfirmChecked}
-                  className="rounded-lg bg-green-600 py-2 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/40"
+                  className="rounded-lg bg-green-600 py-2 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/58"
                 >
                   ✅ تم البيع
                 </button>

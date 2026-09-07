@@ -20,7 +20,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
   }, [loading, firebaseUser, profile, isAdmin, router]);
 
   if (loading || !profile || !isAdmin) {
-    return <p className="py-24 text-center text-black/40">جاري التحقق من الصلاحيات...</p>;
+    return <p className="py-24 text-center text-black/58">جاري التحقق من الصلاحيات...</p>;
   }
 
   return <>{children}</>;

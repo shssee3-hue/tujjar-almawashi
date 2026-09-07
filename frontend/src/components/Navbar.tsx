@@ -66,7 +66,7 @@ export default function Navbar() {
                   await signOut();
                   router.push("/");
                 }}
-                className="text-sm font-medium text-white/70 hover:text-white"
+                className="text-sm font-medium text-white/85 hover:text-white"
               >
                 خروج
               </button>
@@ -120,7 +120,7 @@ export default function Navbar() {
                   حسابي
                 </Link>
                 <button
-                  className="text-start text-white/70"
+                  className="text-start text-white/85"
                   onClick={async () => {
                     await signOut();
                     setOpen(false);

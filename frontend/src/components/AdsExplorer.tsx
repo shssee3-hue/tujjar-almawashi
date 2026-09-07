@@ -212,7 +212,7 @@ export default function AdsExplorer() {
           disabled={locked}
           title={locked ? "القسم محدَّد من الصفحة التي أتيت منها" : undefined}
           className={`h-9 min-w-0 flex-1 rounded-lg border border-black/10 px-1.5 text-xs outline-none focus:border-brand-secondary sm:px-2 sm:text-sm ${
-            locked ? "bg-black/5 text-black/60" : ""
+            locked ? "bg-black/5 text-black/78" : ""
           }`}
         >
           {locked ? (
@@ -252,15 +252,15 @@ export default function AdsExplorer() {
         </button>
       </form>
 
-      <div className="mb-3 text-sm text-black/50">
+      <div className="mb-3 text-sm text-black/68">
         {text.trim() ? visibleAds.length : ads.length}
         {!text.trim() && cursor ? "+" : ""} إعلان
       </div>
 
       {loading ? (
-        <p className="py-20 text-center text-black/40">جاري التحميل...</p>
+        <p className="py-20 text-center text-black/58">جاري التحميل...</p>
       ) : visibleAds.length === 0 ? (
-        <p className="py-20 text-center text-black/40">لا توجد نتائج مطابقة</p>
+        <p className="py-20 text-center text-black/58">لا توجد نتائج مطابقة</p>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">

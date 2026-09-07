@@ -3,7 +3,7 @@ import AdsExplorer from "@/components/AdsExplorer";
 
 export default function AdsPage() {
   return (
-    <Suspense fallback={<p className="py-20 text-center text-black/40">جاري التحميل...</p>}>
+    <Suspense fallback={<p className="py-20 text-center text-black/58">جاري التحميل...</p>}>
       <AdsExplorer />
     </Suspense>
   );

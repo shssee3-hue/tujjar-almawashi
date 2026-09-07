@@ -29,7 +29,7 @@ export default function RegisterPage() {
   }, [authLoading, firebaseUser, router]);
 
   if (authLoading || firebaseUser) {
-    return <p className="py-24 text-center text-black/40">جاري التحميل...</p>;
+    return <p className="py-24 text-center text-black/58">جاري التحميل...</p>;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -101,7 +101,7 @@ export default function RegisterPage() {
                 className={`flex-1 rounded-xl border py-2.5 text-sm font-medium ${
                   accountType === "individual"
                     ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
-                    : "border-black/10 text-black/50"
+                    : "border-black/10 text-black/68"
                 }`}
               >
                 فرد
@@ -112,7 +112,7 @@ export default function RegisterPage() {
                 className={`flex-1 rounded-xl border py-2.5 text-sm font-medium ${
                   accountType === "trader"
                     ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
-                    : "border-black/10 text-black/50"
+                    : "border-black/10 text-black/68"
                 }`}
               >
                 تاجر
@@ -132,7 +132,7 @@ export default function RegisterPage() {
               onChange={setConfirmPassword}
             />
           </div>
-          <label className="flex items-start gap-2 text-sm text-black/60">
+          <label className="flex items-start gap-2 text-sm text-black/78">
             <input
               type="checkbox"
               checked={agreed}
@@ -159,7 +159,7 @@ export default function RegisterPage() {
             {loading ? "جاري الإنشاء..." : "إنشاء الحساب"}
           </button>
         </form>
-        <p className="mt-6 text-center text-sm text-black/50">
+        <p className="mt-6 text-center text-sm text-black/68">
           لديك حساب بالفعل؟{" "}
           <Link href="/login" className="font-bold text-brand-primary">
             تسجيل الدخول

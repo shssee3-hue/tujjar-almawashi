@@ -53,20 +53,20 @@ export default function HomePage() {
           fill
           priority
           sizes="100vw"
-          className="object-cover opacity-[0.85]"
+          className="object-cover"
         />
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(180deg, rgba(26,20,15,0.35) 0%, rgba(90,70,50,0.55) 55%, rgba(90,70,50,0.92) 100%)",
+              "linear-gradient(180deg, rgba(20,15,10,0.55) 0%, rgba(46,34,22,0.68) 55%, rgba(31,24,17,0.96) 100%)",
           }}
         />
-        <div className="relative mx-auto max-w-5xl px-4 py-24 text-center">
-          <h1 className="text-3xl font-extrabold [text-shadow:0_2px_10px_rgba(0,0,0,0.45)] sm:text-5xl">
+        <div className="relative mx-auto max-w-5xl px-4 py-24 text-center sm:py-28">
+          <h1 className="text-4xl font-black tracking-tight [text-shadow:0_2px_18px_rgba(0,0,0,0.55)] sm:text-6xl">
             تجّار المواشي
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-white/80">
+          <p className="mx-auto mt-5 max-w-2xl text-lg font-medium text-white sm:text-xl [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]">
             منصتك الأولى لبيع وشراء المواشي في السعودية — تصفح آلاف
             الإعلانات أو أضف إعلانك الآن.
           </p>
@@ -134,7 +134,7 @@ export default function HomePage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-14">
-        <h2 className="mb-6 text-center text-2xl font-extrabold text-brand-bg-dark">
+        <h2 className="mb-7 text-center text-2xl font-black text-brand-primary sm:text-3xl">
           أقسام المواشي
         </h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
@@ -149,16 +149,16 @@ export default function HomePage() {
                 alt={type}
                 fill
                 sizes="(max-width: 640px) 50vw, 16vw"
-                className="object-cover opacity-[0.85] transition duration-300 group-hover:scale-105"
+                className="object-cover transition duration-300 group-hover:scale-105"
               />
               <div
                 className="absolute inset-0"
                 style={{
                   background:
-                    "linear-gradient(180deg, transparent 40%, rgba(26,20,15,0.75) 100%)",
+                    "linear-gradient(180deg, transparent 22%, rgba(24,17,11,0.55) 62%, rgba(24,17,11,0.9) 100%)",
                 }}
               />
-              <span className="absolute inset-x-0 bottom-0 p-3 text-center font-bold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.5)]">
+              <span className="absolute inset-x-0 bottom-0 p-3 text-center text-sm font-extrabold text-white sm:text-base [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]">
                 {type}
               </span>
             </Link>
@@ -167,7 +167,7 @@ export default function HomePage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 pb-16">
-        <h2 className="mb-6 text-center text-2xl font-extrabold text-brand-bg-dark">
+        <h2 className="mb-7 text-center text-2xl font-black text-brand-primary sm:text-3xl">
           أقسام إضافية
         </h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
@@ -182,16 +182,16 @@ export default function HomePage() {
                 alt={c.label}
                 fill
                 sizes="(max-width: 640px) 50vw, 20vw"
-                className="object-cover opacity-[0.85] transition duration-300 group-hover:scale-105"
+                className="object-cover transition duration-300 group-hover:scale-105"
               />
               <div
                 className="absolute inset-0"
                 style={{
                   background:
-                    "linear-gradient(180deg, transparent 40%, rgba(26,20,15,0.75) 100%)",
+                    "linear-gradient(180deg, transparent 22%, rgba(24,17,11,0.55) 62%, rgba(24,17,11,0.9) 100%)",
                 }}
               />
-              <span className="absolute inset-x-0 bottom-0 p-3 text-center font-bold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.5)]">
+              <span className="absolute inset-x-0 bottom-0 p-3 text-center text-sm font-extrabold text-white sm:text-base [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]">
                 {c.label}
               </span>
             </Link>
@@ -202,8 +202,8 @@ export default function HomePage() {
       {latest.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 pb-16">
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-2xl font-extrabold text-brand-bg-dark">أحدث الإعلانات</h2>
-            <Link href="/ads" className="text-sm font-bold text-brand-primary">
+            <h2 className="text-2xl font-black text-brand-primary sm:text-3xl">أحدث الإعلانات</h2>
+            <Link href="/ads" className="text-sm font-bold text-brand-secondary hover:underline">
               عرض الكل ←
             </Link>
           </div>

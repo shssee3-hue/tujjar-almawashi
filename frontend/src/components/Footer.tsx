@@ -2,14 +2,14 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="mt-16 bg-brand-bg-dark text-white/80">
+    <footer className="mt-16 bg-brand-bg-dark text-white/90">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 md:grid-cols-3">
         <div>
           <div className="mb-3 flex items-center gap-2 text-lg font-extrabold text-white">
             <span className="text-2xl">🐪</span>
             <span>تجّار المواشي</span>
           </div>
-          <p className="text-sm leading-relaxed text-white/60">
+          <p className="text-sm leading-relaxed text-white/78">
             منصة إلكترونية لبيع وشراء المواشي في السعودية، تجمع
             التجار والأفراد في مكان واحد.
           </p>
@@ -17,7 +17,7 @@ export default function Footer() {
 
         <div>
           <h3 className="mb-3 font-bold text-white">روابط الموقع</h3>
-          <ul className="space-y-2 text-sm text-white/60">
+          <ul className="space-y-2 text-sm text-white/78">
             <li>
               <Link href="/privacy" className="hover:text-brand-secondary">
                 سياسة الخصوصية
@@ -38,7 +38,7 @@ export default function Footer() {
 
         <div>
           <h3 className="mb-3 font-bold text-white">تواصل معنا</h3>
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-white/78">
             للاستفسارات والدعم الفني، يمكنكم التواصل معنا عبر الواتساب مباشرة:
           </p>
           <a
@@ -52,7 +52,7 @@ export default function Footer() {
           </a>
         </div>
       </div>
-      <div className="border-t border-white/10 py-4 text-center text-xs text-white/40">
+      <div className="border-t border-white/10 py-4 text-center text-xs text-white/55">
         © {new Date().getFullYear()} تجّار المواشي. جميع الحقوق محفوظة.
       </div>
     </footer>

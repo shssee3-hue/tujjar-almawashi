@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
             <h1 className="mb-2 text-center text-2xl font-extrabold text-brand-primary">
               تحقّق من بريدك
             </h1>
-            <p className="mb-6 text-center text-sm leading-relaxed text-black/60">
+            <p className="mb-6 text-center text-sm leading-relaxed text-black/78">
               إن كان <bdi dir="ltr">{email.trim()}</bdi> مسجّلًا لدينا، فقد أرسلنا
               إليه رابطًا لإعادة تعيين كلمة المرور. افتح الرابط من بريدك (وتحقّق من
               مجلّد المهملات) لضبط كلمة مرور جديدة.
@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
             <h1 className="mb-2 text-center text-2xl font-extrabold text-brand-primary">
               نسيت كلمة المرور؟
             </h1>
-            <p className="mb-6 text-center text-sm text-black/50">
+            <p className="mb-6 text-center text-sm text-black/68">
               أدخل بريدك الإلكتروني المسجّل وسنرسل لك رابطًا لإعادة تعيين كلمة المرور.
             </p>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">

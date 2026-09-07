@@ -33,7 +33,7 @@ function OathTextContent() {
   }
 
   if (!settings) {
-    return <p className="py-10 text-center text-black/40">جاري التحميل...</p>;
+    return <p className="py-10 text-center text-black/58">جاري التحميل...</p>;
   }
 
   return (
@@ -42,7 +42,7 @@ function OathTextContent() {
         <h1 className="text-2xl font-extrabold text-brand-bg-dark">
           نص القسم الإلزامي قبل نشر الإعلان
         </h1>
-        <p className="mt-1 text-sm text-black/50">
+        <p className="mt-1 text-sm text-black/68">
           هذا النص يظهر كخانة موافقة إلزامية في شاشة معاينة كل إعلان، في جميع
           الأقسام، ولا يمكن لأي مستخدم نشر إعلانه قبل تفعيلها.
         </p>

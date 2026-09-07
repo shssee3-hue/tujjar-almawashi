@@ -104,11 +104,11 @@ export default function PrivacyPage() {
       <h1 className="mb-2 text-3xl font-extrabold text-brand-primary">
         سياسة الخصوصية لمنصة تجّار المواشي
       </h1>
-      <p className="mb-6 text-sm text-black/40">
+      <p className="mb-6 text-sm text-black/58">
         تخضع لنظام حماية البيانات الشخصية في المملكة العربية السعودية
       </p>
 
-      <p className="mb-10 leading-relaxed text-black/70">
+      <p className="mb-10 leading-relaxed text-black/85">
         نلتزم في «تجّار المواشي» بحماية خصوصيتك ومعالجة بياناتك الشخصية بشكل
         مشروع وشفاف ومحدود بالغرض. توضّح هذه السياسة ما نجمعه، ولماذا،
         وعلى أي أساس، ومدة الاحتفاظ، وحقوقك وكيفية ممارستها.
@@ -119,13 +119,13 @@ export default function PrivacyPage() {
           <section key={s.title}>
             <h2 className="mb-2 text-lg font-bold text-brand-bg-dark">{s.title}</h2>
             {s.paragraphs?.map((p) => (
-              <p key={p} className="mb-2 leading-relaxed text-black/70">
+              <p key={p} className="mb-2 leading-relaxed text-black/85">
                 {p}
               </p>
             ))}
-            {s.intro && <p className="mb-2 leading-relaxed text-black/70">{s.intro}</p>}
+            {s.intro && <p className="mb-2 leading-relaxed text-black/85">{s.intro}</p>}
             {s.items && (
-              <ul className="list-inside list-disc space-y-1 leading-relaxed text-black/70">
+              <ul className="list-inside list-disc space-y-1 leading-relaxed text-black/85">
                 {s.items.map((it) => (
                   <li key={it}>{it}</li>
                 ))}
