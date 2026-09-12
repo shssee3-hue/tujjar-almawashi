@@ -34,3 +34,6 @@ Thumbs.db
 npm-debug.log*
 *.tsbuildinfo
 frontend/next-env.d.ts
+
+# internal reference docs generated at the repo root (not project source)
+/*.pdf
