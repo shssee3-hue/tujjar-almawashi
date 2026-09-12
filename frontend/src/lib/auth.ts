@@ -5,6 +5,7 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   verifyBeforeUpdateEmail,
+  applyActionCode,
 } from "firebase/auth";
 import { auth } from "./firebase";
 import { createUserProfile } from "./users";
@@ -47,11 +48,18 @@ export async function reauthenticate(currentPassword: string) {
 // link to the NEW address, and the login email only actually changes once
 // that link is opened. The users/{uid}.email copy is reconciled from
 // firebaseUser.email on the next profile load, not here.
+//
+// handleCodeInApp points the link at our own /verify-email page instead of
+// Firebase's default firebaseapp.com-hosted handler, so this flow — like
+// password reset — has no dependency on Firebase Hosting.
 export async function changeLoginEmail(newEmail: string, currentPassword: string) {
   const user = auth.currentUser;
   if (!user) throw new Error("no-session");
   await reauthenticate(currentPassword);
-  await verifyBeforeUpdateEmail(user, newEmail.trim());
+  await verifyBeforeUpdateEmail(user, newEmail.trim(), {
+    url: `${window.location.origin}/verify-email`,
+    handleCodeInApp: true,
+  });
 }
 
 export function authErrorMessage(error: unknown): string {
@@ -68,4 +76,22 @@ export function authErrorMessage(error: unknown): string {
     "auth/too-many-requests": "محاولات كثيرة، حاول لاحقًا",
   };
   return map[code] || "حدث خطأ غير متوقع، حاول مرة أخرى";
+}
+
+// Step 2 of changeLoginEmail, run on /verify-email after the user opens the
+// link emailed to their new address — completes the pending email change.
+export async function completeEmailVerification(oobCode: string): Promise<void> {
+  await applyActionCode(auth, oobCode);
+}
+
+const VERIFY_MESSAGES: Record<string, string> = {
+  "auth/expired-action-code": "انتهت صلاحية الرابط، يرجى طلب تغيير البريد من جديد",
+  "auth/invalid-action-code": "الرابط غير صالح أو استُخدم من قبل",
+  "auth/user-disabled": "تم إيقاف هذا الحساب",
+  "auth/user-not-found": "لا يوجد حساب مرتبط بهذا الرابط",
+};
+
+export function verifyEmailErrorMessage(error: unknown): string {
+  const code = (error as { code?: string })?.code || "";
+  return VERIFY_MESSAGES[code] || "حدث خطأ غير متوقع، حاول مرة أخرى";
 }
