@@ -5,9 +5,11 @@
   "type": "module",
   "description": "One-off maintenance scripts (run manually with a service-account key, never part of the app or CI).",
   "scripts": {
-    "backfill:category": "node backfill-ad-category.mjs"
+    "backfill:category": "node backfill-ad-category.mjs",
+    "backup": "node backup-firestore.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.699.0",
     "firebase-admin": "^12.7.0"
   }
 }
