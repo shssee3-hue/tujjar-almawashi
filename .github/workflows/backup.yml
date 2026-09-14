@@ -1,0 +1,40 @@
+name: Firestore backup
+
+# Daily export of every Firestore collection to a private Cloudflare R2
+# bucket (see frontend/scripts/backup-firestore.mjs). This repo is public,
+# so the exported data (PII, bank receipts) never touches git or workflow
+# logs/artifacts — it goes straight to R2 over the Admin SDK + S3 API.
+on:
+  schedule:
+    - cron: "0 1 * * *" # 01:00 UTC daily (~04:00 Riyadh time)
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: frontend/scripts
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/scripts/package-lock.json
+      - run: npm ci
+      - name: Write service account key
+        run: echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > /tmp/sa.json
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      - run: npm run backup
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/sa.json
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+      - name: Clean up service account key
+        if: always()
+        run: rm -f /tmp/sa.json
